@@ -73,7 +73,10 @@ router.get("/profile", isLoggedIn, async function (req, res) {
 router.get("/feed", isLoggedIn, async function (req, res) {
   try {
     const user = await userModel.findOne({ username: req.session.passport.user });
-    const posts = await postModel.find().populate("user");
+    const posts = await postModel.find()
+      .populate("user")
+      .populate({ path: "comments.user", model: "user" })
+      .populate({ path: "comments.replies.user", model: "user" });
     res.json({ user, posts });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -182,6 +185,55 @@ router.post("/deletepost/:id", isLoggedIn, async function (req, res) {
   }
 });
 
+router.post("/comment/:id", isLoggedIn, async function (req, res) {
+  try {
+    const user = await userModel.findOne({ username: req.session.passport.user });
+    const post = await postModel.findOne({ _id: req.params.id });
+    
+    post.comments.push({
+      user: user._id,
+      comment: req.body.comment
+    });
+    
+    await post.save();
+    
+    const populatedPost = await postModel.findOne({ _id: req.params.id })
+        .populate("user")
+        .populate({ path: "comments.user", model: "user" })
+        .populate({ path: "comments.replies.user", model: "user" });
+
+    res.json({ success: true, post: populatedPost });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+router.post("/comment/reply/:postId/:commentId", isLoggedIn, async function (req, res) {
+  try {
+    const user = await userModel.findOne({ username: req.session.passport.user });
+    const post = await postModel.findOne({ _id: req.params.postId });
+    
+    const commentIndex = post.comments.findIndex(c => c._id.toString() === req.params.commentId);
+    if (commentIndex === -1) return res.status(404).json({ error: "Comment not found" });
+
+    post.comments[commentIndex].replies.push({
+      user: user._id,
+      comment: req.body.comment
+    });
+
+    await post.save();
+    
+    const populatedPost = await postModel.findOne({ _id: req.params.postId })
+        .populate("user")
+        .populate({ path: "comments.user", model: "user" })
+        .populate({ path: "comments.replies.user", model: "user" });
+
+    res.json({ success: true, post: populatedPost });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 router.get("/userprofile/:username", isLoggedIn, async function (req, res) {
   try {
     const user = await userModel.findOne({ username: req.session.passport.user });
@@ -284,7 +336,10 @@ router.post("/reset/:token", async function (req, res) {
 router.get("/notification", isLoggedIn, async function (req, res) {
   try {
     const user = await userModel.findOne({ username: req.session.passport.user });
-    const posts = await postModel.find({ user: user._id }).populate("likes");
+    const posts = await postModel.find({ user: user._id })
+      .populate("likes")
+      .populate({ path: "comments.user", model: "user" })
+      .populate({ path: "comments.replies.user", model: "user" });
     res.json({ user, posts });
   } catch (err) {
     res.status(500).json({ error: err.message });

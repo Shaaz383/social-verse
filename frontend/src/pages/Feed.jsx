@@ -6,6 +6,11 @@ import Navbar from '../components/Navbar';
 const Feed = () => {
   const [user, setUser] = useState(null);
   const [posts, setPosts] = useState([]);
+  const [activeCommentPostId, setActiveCommentPostId] = useState(null);
+  const [commentInput, setCommentInput] = useState("");
+  const [replyInput, setReplyInput] = useState({}); // { commentId: text }
+  const [activeReplyCommentId, setActiveReplyCommentId] = useState(null); // To toggle reply input
+
   const navigate = useNavigate();
 
   const fetchFeed = async () => {
@@ -27,6 +32,39 @@ const Feed = () => {
     try {
       await api.get(`/like/post/${postId}`);
       fetchFeed(); // Refresh posts to show new like count/status
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const toggleComments = (postId) => {
+    if (activeCommentPostId === postId) {
+      setActiveCommentPostId(null);
+    } else {
+      setActiveCommentPostId(postId);
+      setCommentInput("");
+    }
+  };
+
+  const handleAddComment = async (postId) => {
+    if (!commentInput.trim()) return;
+    try {
+      await api.post(`/comment/${postId}`, { comment: commentInput });
+      setCommentInput("");
+      fetchFeed();
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleReply = async (postId, commentId) => {
+    const text = replyInput[commentId];
+    if (!text || !text.trim()) return;
+    try {
+      await api.post(`/comment/reply/${postId}/${commentId}`, { comment: text });
+      setReplyInput({ ...replyInput, [commentId]: "" });
+      setActiveReplyCommentId(null);
+      fetchFeed();
     } catch (err) {
       console.error(err);
     }
@@ -104,26 +142,97 @@ const Feed = () => {
               />
             </div>
             <div className="options w-full px-4 flex justify-between items-center text-[1.4rem]">
-              <div className="flex gap-3 mt-2">
-                <button onClick={() => handleLike(elem._id)}>
+              <div className="flex gap-3 mt-2 items-center">
+                <button onClick={() => handleLike(elem._id)} className="flex items-center gap-1">
                   {elem.likes.includes(user._id) ? (
                     <i className="ri-heart-3-fill text-red-600"></i>
                   ) : (
                     <i className="ri-heart-line"></i>
                   )}
+                  <span className="text-sm">{elem.likes.length}</span>
                 </button>
-                <i className="ri-chat-3-line"></i>
+                <button onClick={() => toggleComments(elem._id)} className="flex items-center gap-1">
+                    <i className="ri-chat-3-line"></i>
+                    <span className="text-sm">{elem.comments ? elem.comments.length : 0}</span>
+                </button>
                 <i className="ri-share-circle-line"></i>
               </div>
               <i className="ri-bookmark-line"></i>
             </div>
-            <h3 className="px-4 mt-2 text-sm leading-none tracking-tight">
-              {elem.likes.length} likes
-            </h3>
+            
             <h2 className="text-white font-light text-sm mt-2 px-4">
               <span className="font-semibold pr-2">{elem.user.username}</span>
               {elem.caption}
             </h2>
+
+            {/* Comments Section */}
+            {activeCommentPostId === elem._id && (
+              <div className="px-4 mt-4">
+                <div className="mb-4">
+                  <div className="flex gap-2">
+                    <input 
+                      type="text" 
+                      className="w-full bg-zinc-800 text-white rounded px-3 py-1 text-sm outline-none"
+                      placeholder="Add a comment..."
+                      value={commentInput}
+                      onChange={(e) => setCommentInput(e.target.value)}
+                    />
+                    <button 
+                      onClick={() => handleAddComment(elem._id)}
+                      className="text-blue-500 text-sm font-semibold"
+                    >
+                      Post
+                    </button>
+                  </div>
+                </div>
+
+                <div className="flex flex-col gap-3 max-h-60 overflow-y-auto">
+                  {elem.comments && elem.comments.map(comment => (
+                    <div key={comment._id} className="text-sm">
+                      <div className="flex gap-2 mb-1">
+                        <span className="font-semibold">{comment.user.username}</span>
+                        <span className="font-light">{comment.comment}</span>
+                      </div>
+                      <div className="flex gap-3 text-xs opacity-60 pl-2 mb-1">
+                         <button onClick={() => setActiveReplyCommentId(activeReplyCommentId === comment._id ? null : comment._id)}>Reply</button>
+                      </div>
+                      
+                      {/* Replies */}
+                      {comment.replies && comment.replies.length > 0 && (
+                        <div className="pl-6 flex flex-col gap-2 mt-1 border-l-2 border-zinc-800 ml-2">
+                            {comment.replies.map(reply => (
+                                <div key={reply._id}>
+                                    <span className="font-semibold mr-2">{reply.user.username}</span>
+                                    <span className="font-light">{reply.comment}</span>
+                                </div>
+                            ))}
+                        </div>
+                      )}
+
+                      {/* Reply Input */}
+                      {activeReplyCommentId === comment._id && (
+                        <div className="flex gap-2 mt-2 pl-4">
+                            <input 
+                            type="text" 
+                            className="w-full bg-zinc-800 text-white rounded px-2 py-1 text-xs outline-none"
+                            placeholder="Reply..."
+                            value={replyInput[comment._id] || ""}
+                            onChange={(e) => setReplyInput({...replyInput, [comment._id]: e.target.value})}
+                            />
+                            <button 
+                            onClick={() => handleReply(elem._id, comment._id)}
+                            className="text-blue-500 text-xs font-semibold"
+                            >
+                            Reply
+                            </button>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
           </div>
         ))}
       </div>

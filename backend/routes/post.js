@@ -23,6 +23,38 @@ const postSchema = new mongoose.Schema({
       ref: "user",
     },
   ],
+  comments: [
+    {
+      user: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "user",
+      },
+      comment: {
+        type: String,
+        required: true
+      },
+      date: {
+        type: Date,
+        default: Date.now,
+      },
+      replies: [
+        {
+          user: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "user",
+          },
+          comment: {
+            type: String,
+            required: true
+          },
+          date: {
+            type: Date,
+            default: Date.now,
+          }
+        }
+      ]
+    }
+  ]
 });
 
 // Create the post model and export
