@@ -38,7 +38,7 @@ const Notification = () => {
                         <div className="image w-[11vw] h-[11vw] rounded-full bg-sky-100 overflow-hidden">
                           <img
                             className="w-full h-full object-cover"
-                            src={`http://localhost:3000/images/uploads/${like.profileImage}`}
+                            src={like.profileImage?.startsWith('http') ? like.profileImage : `http://localhost:3000/images/uploads/${like.profileImage}`}
                             alt=""
                           />
                         </div>
@@ -49,7 +49,7 @@ const Notification = () => {
                       <div className="image w-[11vw] h-[11vw] bg-sky-100 overflow-hidden">
                         <img
                           className="w-full h-full object-cover"
-                          src={`http://localhost:3000/images/uploads/${post.picture}`}
+                          src={post.picture?.startsWith('http') ? post.picture : `http://localhost:3000/images/uploads/${post.picture}`}
                           alt=""
                         />
                       </div>
@@ -70,7 +70,7 @@ const Notification = () => {
                                 <div className="image w-[11vw] h-[11vw] rounded-full bg-sky-100 overflow-hidden">
                                 <img
                                     className="w-full h-full object-cover"
-                                    src={`http://localhost:3000/images/uploads/${comment.user.profileImage}`}
+                                    src={comment.user.profileImage?.startsWith('http') ? comment.user.profileImage : `http://localhost:3000/images/uploads/${comment.user.profileImage}`}
                                     alt=""
                                 />
                                 </div>
@@ -109,7 +109,7 @@ const Notification = () => {
                                 <div className="image w-[11vw] h-[11vw] bg-sky-100 overflow-hidden">
                                     <img
                                     className="w-full h-full object-cover"
-                                    src={`http://localhost:3000/images/uploads/${post.picture}`}
+                                    src={post.picture?.startsWith('http') ? post.picture : `http://localhost:3000/images/uploads/${post.picture}`}
                                     alt=""
                                     />
                                 </div>

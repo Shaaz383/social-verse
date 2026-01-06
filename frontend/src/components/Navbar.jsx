@@ -17,7 +17,7 @@ const Navbar = ({ user }) => {
         <div className="w-6 h-6 bg-zinc-300 rounded-full overflow-hidden">
           {user && user.profileImage ? (
             <img
-              src={`http://localhost:3000/images/uploads/${user.profileImage}`}
+              src={user.profileImage?.startsWith('http') ? user.profileImage : `http://localhost:3000/images/uploads/${user.profileImage}`}
               alt="avatar"
               className="w-full h-full object-cover"
             />

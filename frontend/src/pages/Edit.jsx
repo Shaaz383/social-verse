@@ -11,6 +11,7 @@ const Edit = () => {
     bio: ''
   });
   const [file, setFile] = useState(null);
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -40,6 +41,7 @@ const Edit = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setLoading(true);
     const data = new FormData();
     data.append('username', formData.username);
     data.append('name', formData.name);
@@ -57,6 +59,8 @@ const Edit = () => {
       navigate('/profile');
     } catch (err) {
       console.error(err);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -77,7 +81,7 @@ const Edit = () => {
         <div className="image w-20 h-20 bg-sky-100 rounded-full overflow-hidden">
              <img
                 className="w-full h-full object-cover"
-                src={file ? URL.createObjectURL(file) : `http://localhost:3000/images/uploads/${user.profileImage}`}
+                src={file ? URL.createObjectURL(file) : (user.profileImage?.startsWith('http') ? user.profileImage : `http://localhost:3000/images/uploads/${user.profileImage}`)}
                 alt=""
               />
         </div>
@@ -124,9 +128,10 @@ const Edit = () => {
             onChange={handleChange}
           ></textarea>
           <input
-            className="w-full bg-blue-500 px-3 py-3 rounded-md mt-2 cursor-pointer"
+            className={`w-full px-3 py-3 rounded-md mt-2 cursor-pointer ${loading ? 'bg-gray-500 cursor-not-allowed' : 'bg-blue-500'}`}
             type="submit"
-            value="Update Details"
+            disabled={loading}
+            value={loading ? "Updating..." : "Update Details"}
           />
         </form>
       </div>

@@ -55,7 +55,7 @@ const Search = () => {
               <div className="image w-[11vw] h-[11vw] rounded-full bg-sky-100 overflow-hidden">
                 <img
                   className="w-full h-full object-cover"
-                  src={`http://localhost:3000/images/uploads/${elem.profileImage}`}
+                  src={elem.profileImage?.startsWith('http') ? elem.profileImage : `http://localhost:3000/images/uploads/${elem.profileImage}`}
                   alt=""
                 />
               </div>

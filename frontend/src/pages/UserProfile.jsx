@@ -55,7 +55,7 @@ const UserProfile = () => {
       <div className="flex justify-between items-center pl-6 pr-[12vw] mt-8">
         <div className="w-[19vw] h-[19vw] bg-sky-100 rounded-full overflow-hidden">
           <img
-            src={`http://localhost:3000/images/uploads/${userProfile.profileImage}`}
+            src={userProfile.profileImage?.startsWith('http') ? userProfile.profileImage : `http://localhost:3000/images/uploads/${userProfile.profileImage}`}
             alt="avatar"
             className="w-full h-full object-cover"
           />
@@ -100,7 +100,7 @@ const UserProfile = () => {
           <div key={post._id} className="post w-[32.5%] h-32 bg-sky-100 overflow-hidden">
             <img
               className="w-full h-full object-cover"
-              src={`http://localhost:3000/images/uploads/${post.picture}`}
+              src={post.picture?.startsWith('http') ? post.picture : `http://localhost:3000/images/uploads/${post.picture}`}
               alt=""
             />
           </div>

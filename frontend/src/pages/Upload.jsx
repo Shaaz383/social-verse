@@ -6,6 +6,7 @@ import Navbar from '../components/Navbar';
 const Upload = () => {
   const [caption, setCaption] = useState('');
   const [file, setFile] = useState(null);
+  const [loading, setLoading] = useState(false);
   const [user, setUser] = useState(null);
   const navigate = useNavigate();
 
@@ -29,6 +30,7 @@ const Upload = () => {
     e.preventDefault();
     if (!file) return;
 
+    setLoading(true);
     const formData = new FormData();
     formData.append('image', file);
     formData.append('caption', caption);
@@ -42,6 +44,8 @@ const Upload = () => {
       navigate('/feed');
     } catch (err) {
       console.error(err);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -57,8 +61,16 @@ const Upload = () => {
         </Link>
       </div>
       <div className="flex flex-col items-center gap-2 mt-20">
-        <div className="image w-[25vw] h-[25vw] rounded-full border-2 border-zinc-800 flex items-center justify-center">
-          <i className="text-5xl font-light ri-image-line"></i>
+        <div className="image w-[25vw] h-[25vw] rounded-full border-2 border-zinc-800 flex items-center justify-center overflow-hidden">
+          {file ? (
+            <img
+              className="w-full h-full object-cover"
+              src={URL.createObjectURL(file)}
+              alt="preview"
+            />
+          ) : (
+            <i className="text-5xl font-light ri-image-line"></i>
+          )}
         </div>
         <button
           id="selectpic"
@@ -88,9 +100,10 @@ const Upload = () => {
           onChange={(e) => setCaption(e.target.value)}
         ></textarea>
         <input
-          className="w-full px-2 py-2 bg-blue-500 rounded-md cursor-pointer"
+          className={`w-full px-2 py-2 rounded-md cursor-pointer ${loading ? 'bg-gray-500 cursor-not-allowed' : 'bg-blue-500'}`}
           type="submit"
-          value="Post"
+          disabled={loading}
+          value={loading ? "Uploading..." : "Post"}
         />
       </form>
       <Navbar user={user} />

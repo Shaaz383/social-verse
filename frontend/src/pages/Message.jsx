@@ -51,7 +51,7 @@ const Message = () => {
                 <div className="image w-[11vw] h-[11vw] rounded-full bg-sky-100 overflow-hidden">
                   <img
                     className="w-full h-full object-cover"
-                    src={`http://localhost:3000/images/uploads/${u.profileImage}`}
+                    src={u.profileImage?.startsWith('http') ? u.profileImage : `http://localhost:3000/images/uploads/${u.profileImage}`}
                     alt=""
                   />
                 </div>

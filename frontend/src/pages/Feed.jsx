@@ -137,7 +137,7 @@ const Feed = () => {
             <div className="w-full h-96 mt-4 bg-sky-100 overflow-hidden">
               <img
                 className="w-full h-full object-cover"
-                src={`http://localhost:3000/images/uploads/${elem.picture}`}
+                src={elem.picture?.startsWith('http') ? elem.picture : `http://localhost:3000/images/uploads/${elem.picture}`}
                 alt=""
               />
             </div>
