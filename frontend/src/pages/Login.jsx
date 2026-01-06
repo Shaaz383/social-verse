@@ -55,6 +55,9 @@ const Login = () => {
             value="Log In"
           />
         </form>
+        <Link to="/forgot" className="text-sm text-gray-400 mt-2">
+          Forgot Password?
+        </Link>
         <span>
           Don't have an account ?{' '}
           <Link to="/" className="text-blue-500">

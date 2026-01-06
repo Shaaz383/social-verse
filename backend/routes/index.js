@@ -60,7 +60,10 @@ router.get("/logout", function (req, res, next) {
 
 router.get("/profile", isLoggedIn, async function (req, res) {
   try {
-    const user = await userModel.findOne({ username: req.session.passport.user }).populate("posts");
+    const user = await userModel.findOne({ username: req.session.passport.user })
+      .populate("posts")
+      .populate("followers")
+      .populate("following");
     res.json({ user });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -162,6 +165,137 @@ router.get("/like/post/:id", isLoggedIn, async function (req, res) {
 
     await post.save();
     res.json({ success: true, post });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+router.post("/deletepost/:id", isLoggedIn, async function (req, res) {
+  try {
+    const post = await postModel.findOneAndDelete({ _id: req.params.id });
+    const user = await userModel.findOne({ username: req.session.passport.user });
+    user.posts.pull(req.params.id);
+    await user.save();
+    res.json({ success: true, message: "Post deleted" });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+router.get("/userprofile/:username", isLoggedIn, async function (req, res) {
+  try {
+    const user = await userModel.findOne({ username: req.session.passport.user });
+    const userProfile = await userModel.findOne({ username: req.params.username }).populate("posts");
+    
+    if (!userProfile) return res.status(404).json({ error: "User not found" });
+
+    res.json({ user, userProfile, userPosts: userProfile.posts });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+router.post("/follow/:username", isLoggedIn, async function (req, res) {
+  try {
+    const follower = await userModel.findOne({ username: req.session.passport.user });
+    const following = await userModel.findOne({ username: req.params.username });
+
+    if (follower.following.indexOf(following._id) === -1) {
+      follower.following.push(following._id);
+      following.followers.push(follower._id);
+    }
+    
+    await follower.save();
+    await following.save();
+    res.json({ success: true, message: "Followed" });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+router.post("/unfollow/:username", isLoggedIn, async function (req, res) {
+  try {
+    const follower = await userModel.findOne({ username: req.session.passport.user });
+    const following = await userModel.findOne({ username: req.params.username });
+
+    if (follower.following.indexOf(following._id) !== -1) {
+      follower.following.pull(following._id);
+      following.followers.pull(follower._id);
+    }
+    
+    await follower.save();
+    await following.save();
+    res.json({ success: true, message: "Unfollowed" });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+router.post("/forgot", async function (req, res) {
+  try {
+    const user = await userModel.findOne({ email: req.body.email });
+    if (!user) return res.status(404).json({ error: "User not found" });
+
+    const token = crypto.randomBytes(20).toString('hex');
+    user.resetPasswordToken = token;
+    user.resetPasswordExpires = Date.now() + 3600000; // 1 hour
+    await user.save();
+
+    // Mock email sending
+    console.log(`Reset token for ${user.email}: ${token}`);
+    
+    // In production, use nodemailer here
+    // const transporter = nodemailer.createTransport({ ... });
+    // await transporter.sendMail({ ... });
+
+    res.json({ success: true, message: "Email sent", token }); // Sending token in response for dev purposes
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+router.post("/reset/:token", async function (req, res) {
+  try {
+    const user = await userModel.findOne({
+      resetPasswordToken: req.params.token,
+      resetPasswordExpires: { $gt: Date.now() }
+    });
+
+    if (!user) return res.status(400).json({ error: "Token is invalid or has expired" });
+
+    if (req.body.password !== req.body.confirmPassword) {
+      return res.status(400).json({ error: "Passwords do not match" });
+    }
+
+    await user.setPassword(req.body.password);
+    user.resetPasswordToken = undefined;
+    user.resetPasswordExpires = undefined;
+    await user.save();
+
+    req.logIn(user, function (err) {
+      if (err) return res.status(500).json({ error: err.message });
+      res.json({ success: true, message: "Password updated" });
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+router.get("/notification", isLoggedIn, async function (req, res) {
+  try {
+    const user = await userModel.findOne({ username: req.session.passport.user });
+    const posts = await postModel.find({ user: user._id }).populate("likes");
+    res.json({ user, posts });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+router.get("/message", isLoggedIn, async function (req, res) {
+  try {
+    const user = await userModel.findOne({ username: req.session.passport.user });
+    const users = await userModel.find({ _id: { $ne: user._id } }); // All users except current
+    res.json({ user, users });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
