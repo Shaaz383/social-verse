@@ -43,12 +43,32 @@ const Feed = () => {
     fetchStories();
   }, [navigate]);
 
-  const handleLike = async (postId) => {
+  const handleDeleteStory = async (storyId) => {
     try {
-      await api.get(`/like/post/${postId}`);
-      fetchFeed(); // Refresh posts to show new like count/status
+      await api.delete(`/stories/${storyId}`);
+      fetchStories(); // Refresh stories
+      setSelectedStory(null); // Close viewer
     } catch (err) {
       console.error(err);
+    }
+  };
+
+  const handleStoryClick = async (story) => {
+    const isOwnStory = user && story.user._id === user._id;
+    if (!isOwnStory) {
+      try {
+        await api.post(`/stories/view/${story._id}`);
+        // Refresh stories to update view count
+        await fetchStories();
+        // Update selectedStory with the refreshed data
+        const updatedStory = stories.find(s => s._id === story._id);
+        setSelectedStory(updatedStory || story);
+      } catch (err) {
+        console.error('Failed to mark story as viewed:', err);
+        setSelectedStory(story);
+      }
+    } else {
+      setSelectedStory(story);
     }
   };
 
@@ -112,9 +132,9 @@ const Feed = () => {
       
       {/* Stories Section */}
       <div className="story px-3 flex gap-3 overflow-auto mt-5">
-        <div className="circle flex-shrink-0 relative">
+        <div className="circle flex-shrink-0 flex flex-col items-center gap-1">
           <Link to="/upload-story">
-            <div className="w-[18vw] h-[18vw] bg-sky-100 rounded-full flex items-center justify-center">
+            <div className="w-[18vw] h-[18vw] bg-sky-100 rounded-full flex items-center justify-center relative">
               <div className="inner w-[92%] h-[92%] rounded-full overflow-hidden">
                 <img
                   src={user.profileImage}
@@ -122,15 +142,16 @@ const Feed = () => {
                   className="w-full h-full object-cover"
                 />
               </div>
-            </div>
-            <div className="absolute bottom-0 right-0 w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center text-white">
-              <i className="ri-add-line"></i>
+              <div className="absolute bottom-0 right-0 w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center text-white">
+                <i className="ri-add-line"></i>
+              </div>
             </div>
           </Link>
+          <p className="name text-xs">Your Story</p>
         </div>
         
         {stories.map((story, index) => (
-          <div key={index} className="circle flex-shrink-0 flex flex-col items-center gap-1" onClick={() => setSelectedStory(story)}>
+          <div key={index} className="circle flex-shrink-0 flex flex-col items-center gap-1" onClick={() => handleStoryClick(story)}>
             <div className="gradient w-[18vw] h-[18vw] bg-sky-100 rounded-full bg-gradient-to-r from-purple-700 to-orange-500 flex items-center justify-center">
                 <div className="inner w-[92%] h-[92%] rounded-full overflow-hidden">
                 <img
@@ -145,7 +166,7 @@ const Feed = () => {
         ))}
       </div>
 
-      {selectedStory && <StoryViewer story={selectedStory} onClose={() => setSelectedStory(null)} />}
+      {selectedStory && <StoryViewer story={selectedStory} onClose={() => setSelectedStory(null)} user={user} onDelete={handleDeleteStory} />}
 
       <div className="posts mb-20">
         {([...posts]

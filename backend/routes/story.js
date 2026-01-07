@@ -37,9 +37,48 @@ router.get("/feed", isLoggedIn, async function (req, res) {
         const followingIds = user.following.map(f => f._id);
         const authorIds = [user._id, ...followingIds];
 
-        const stories = await storyModel.find({ user: { $in: authorIds } }).populate("user");
+        const stories = await storyModel.find({ user: { $in: authorIds } }).populate("user").populate("viewers", "username name");
 
         res.json({ stories });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+router.delete("/:id", isLoggedIn, async function (req, res) {
+    try {
+        const user = await userModel.findOne({ username: req.session.passport.user });
+        const story = await storyModel.findOne({ _id: req.params.id, user: user._id });
+
+        if (!story) {
+            return res.status(404).json({ error: "Story not found" });
+        }
+
+        await storyModel.findByIdAndDelete(req.params.id);
+        user.stories.pull(req.params.id);
+        await user.save();
+
+        res.json({ success: true, message: "Story deleted" });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+router.post("/view/:id", isLoggedIn, async function (req, res) {
+    try {
+        const user = await userModel.findOne({ username: req.session.passport.user });
+        const story = await storyModel.findById(req.params.id);
+
+        if (!story) {
+            return res.status(404).json({ error: "Story not found" });
+        }
+
+        if (!story.viewers.includes(user._id)) {
+            story.viewers.push(user._id);
+            await story.save();
+        }
+
+        res.json({ success: true });
     } catch (err) {
         res.status(500).json({ error: err.message });
     }

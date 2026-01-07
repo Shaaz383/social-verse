@@ -6,6 +6,7 @@ const storySchema = mongoose.Schema({
     ref: 'user'
   },
   image: String,
+  viewers: [{ type: mongoose.Schema.Types.ObjectId, ref: "user" }],
   createdAt: {
     type: Date,
     default: Date.now,
