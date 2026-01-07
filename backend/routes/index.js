@@ -73,11 +73,22 @@ router.get("/profile", isLoggedIn, async function (req, res) {
 router.get("/feed", isLoggedIn, async function (req, res) {
   try {
     const user = await userModel.findOne({ username: req.session.passport.user });
-    const posts = await postModel.find()
+    const authorIds = [user._id, ...user.following];
+    const posts = await postModel.find({ user: { $in: authorIds } })
       .populate("user")
       .populate({ path: "comments.user", model: "user" })
       .populate({ path: "comments.replies.user", model: "user" });
-    res.json({ user, posts });
+    let suggestions = [];
+    if (!posts.length) {
+      suggestions = await userModel
+        .find({
+          _id: { $nin: authorIds },
+          posts: { $exists: true, $ne: [] },
+        })
+        .select("username name profileImage")
+        .limit(8);
+    }
+    res.json({ user, posts, suggestions });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

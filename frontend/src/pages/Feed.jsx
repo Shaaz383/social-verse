@@ -10,6 +10,7 @@ const Feed = () => {
   const [commentInput, setCommentInput] = useState("");
   const [replyInput, setReplyInput] = useState({}); // { commentId: text }
   const [activeReplyCommentId, setActiveReplyCommentId] = useState(null); // To toggle reply input
+  const [suggestions, setSuggestions] = useState([]);
 
   const navigate = useNavigate();
 
@@ -18,6 +19,7 @@ const Feed = () => {
       const response = await api.get('/feed');
       setUser(response.data.user);
       setPosts(response.data.posts);
+      setSuggestions(response.data.suggestions || []);
     } catch (err) {
       console.error(err);
       navigate('/login');
@@ -32,6 +34,15 @@ const Feed = () => {
     try {
       await api.get(`/like/post/${postId}`);
       fetchFeed(); // Refresh posts to show new like count/status
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleFollowUser = async (username) => {
+    try {
+      await api.post(`/follow/${username}`);
+      fetchFeed();
     } catch (err) {
       console.error(err);
     }
@@ -92,7 +103,7 @@ const Feed = () => {
           <div className="w-[18vw] h-[18vw] bg-sky-100 rounded-full flex items-center justify-center">
             <div className="inner w-[92%] h-[92%] rounded-full overflow-hidden">
               <img
-                src={`http://localhost:3000/images/uploads/${user.profileImage}`}
+                src={user.profileImage?.startsWith('http') ? user.profileImage : `http://localhost:3000/images/uploads/${user.profileImage}`}
                 alt="avatar"
                 className="w-full h-full object-cover"
               />
@@ -122,17 +133,21 @@ const Feed = () => {
       </div>
 
       <div className="posts mb-20">
-        {[...posts].reverse().map((elem) => (
+        {([...posts]
+          .reverse()
+          .filter((p) => p.user && (p.user._id === user._id || (user.following || []).includes(p.user._id)))).map((elem) => (
           <div key={elem._id} className="post mt-10 w-full min-h-[50vh]">
             <div className="title px-4 flex items-center gap-2">
               <div className="w-[8vw] h-[8vw] bg-sky-100 rounded-full overflow-hidden">
                 <img
                   className="w-full h-full object-cover"
-                  src={`http://localhost:3000/images/uploads/${elem.user.profileImage}`}
+                  src={elem.user.profileImage?.startsWith('http') ? elem.user.profileImage : `http://localhost:3000/images/uploads/${elem.user.profileImage}`}
                   alt=""
                 />
               </div>
-              <h4 className="text-sm">{elem.user.username}</h4>
+              <Link to={`/userprofile/${elem.user.username}`} className="text-sm">
+                {elem.user.username}
+              </Link>
             </div>
             <div className="w-full h-96 mt-4 bg-sky-100 overflow-hidden">
               <img
@@ -236,6 +251,38 @@ const Feed = () => {
           </div>
         ))}
       </div>
+
+      {([...posts].filter((p) => p.user && (p.user._id === user._id || (user.following || []).includes(p.user._id))).length === 0) && (
+        <div className="px-4 mt-10 mb-24">
+          <h2 className="text-white text-base">Please follow users to see the post</h2>
+          <p className="text-zinc-400 text-sm mt-1">Suggested accounts</p>
+          <div className="mt-4 grid grid-cols-1 gap-3">
+            {suggestions.map((sug) => (
+              <div key={sug._id} className="flex items-center justify-between">
+                <Link to={`/userprofile/${sug.username}`} className="flex items-center gap-2">
+                  <div className="w-[8vw] h-[8vw] bg-sky-100 rounded-full overflow-hidden">
+                    <img
+                      className="w-full h-full object-cover"
+                      src={sug.profileImage?.startsWith('http') ? sug.profileImage : `http://localhost:3000/images/uploads/${sug.profileImage}`}
+                      alt=""
+                    />
+                  </div>
+                  <div className="flex flex-col">
+                    <span className="text-sm text-white">{sug.username}</span>
+                    <span className="text-xs text-zinc-400">{sug.name}</span>
+                  </div>
+                </Link>
+                <button
+                  onClick={() => handleFollowUser(sug.username)}
+                  className="px-3 py-1 bg-blue-700 text-white rounded text-xs"
+                >
+                  Follow
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       <Navbar user={user} />
     </div>
