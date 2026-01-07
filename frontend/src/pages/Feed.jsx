@@ -13,7 +13,7 @@ const Feed = () => {
   const [activeReplyCommentId, setActiveReplyCommentId] = useState(null); // To toggle reply input
   const [suggestions, setSuggestions] = useState([]);
   const [stories, setStories] = useState([]);
-  const [selectedStory, setSelectedStory] = useState(null);
+  const [selectedStories, setSelectedStories] = useState(null);
 
   const navigate = useNavigate();
 
@@ -46,31 +46,53 @@ const Feed = () => {
   const handleDeleteStory = async (storyId) => {
     try {
       await api.delete(`/stories/${storyId}`);
-      fetchStories(); // Refresh stories
-      setSelectedStory(null); // Close viewer
+      await fetchStories();
+      // If no more stories for this user, close viewer
+      const remainingStories = stories.filter(s => s._id !== storyId && s.user._id === selectedStories[0].user._id);
+      if (remainingStories.length === 0) {
+        setSelectedStories(null);
+      } else {
+        setSelectedStories(remainingStories);
+      }
     } catch (err) {
       console.error(err);
     }
   };
 
-  const handleStoryClick = async (story) => {
+  const handleStoryClick = async (userStories) => {
+    const story = userStories[0]; // First story of the user
     const isOwnStory = user && story.user._id === user._id;
     if (!isOwnStory) {
       try {
-        await api.post(`/stories/view/${story._id}`);
+        // Mark all stories of this user as viewed
+        for (const s of userStories) {
+          await api.post(`/stories/view/${s._id}`);
+        }
         // Refresh stories to update view count
         await fetchStories();
         // Update selectedStory with the refreshed data
-        const updatedStory = stories.find(s => s._id === story._id);
-        setSelectedStory(updatedStory || story);
+        const updatedStories = stories.filter(s => s.user._id === story.user._id);
+        setSelectedStories(updatedStories);
       } catch (err) {
-        console.error('Failed to mark story as viewed:', err);
-        setSelectedStory(story);
+        console.error('Failed to mark stories as viewed:', err);
+        setSelectedStories(userStories);
       }
     } else {
-      setSelectedStory(story);
+      setSelectedStories(userStories);
     }
   };
+
+  // Group stories by user
+  const groupedStories = stories.reduce((acc, story) => {
+    const userId = story.user._id;
+    if (!acc[userId]) {
+      acc[userId] = [];
+    }
+    acc[userId].push(story);
+    return acc;
+  }, {});
+
+  const userHasStories = groupedStories[user?._id]?.length > 0;
 
   const handleFollowUser = async (username) => {
     try {
@@ -132,9 +154,10 @@ const Feed = () => {
       
       {/* Stories Section */}
       <div className="story px-3 flex gap-3 overflow-auto mt-5">
+        {/* User's story circle */}
         <div className="circle flex-shrink-0 flex flex-col items-center gap-1">
-          <Link to="/upload-story">
-            <div className="w-[18vw] h-[18vw] bg-sky-100 rounded-full flex items-center justify-center relative">
+          {userHasStories ? (
+            <div className="gradient w-[18vw] h-[18vw] bg-sky-100 rounded-full bg-gradient-to-r from-purple-700 to-orange-500 flex items-center justify-center" onClick={() => handleStoryClick(groupedStories[user._id])}>
               <div className="inner w-[92%] h-[92%] rounded-full overflow-hidden">
                 <img
                   src={user.profileImage}
@@ -142,31 +165,48 @@ const Feed = () => {
                   className="w-full h-full object-cover"
                 />
               </div>
-              <div className="absolute bottom-0 right-0 w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center text-white">
-                <i className="ri-add-line"></i>
-              </div>
             </div>
-          </Link>
+          ) : (
+            <Link to="/upload-story">
+              <div className="w-[18vw] h-[18vw] bg-sky-100 rounded-full flex items-center justify-center relative">
+                <div className="inner w-[92%] h-[92%] rounded-full overflow-hidden">
+                  <img
+                    src={user.profileImage}
+                    alt="avatar"
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+                <div className="absolute bottom-0 right-0 w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center text-white">
+                  <i className="ri-add-line"></i>
+                </div>
+              </div>
+            </Link>
+          )}
           <p className="name text-xs">Your Story</p>
         </div>
         
-        {stories.map((story, index) => (
-          <div key={index} className="circle flex-shrink-0 flex flex-col items-center gap-1" onClick={() => handleStoryClick(story)}>
-            <div className="gradient w-[18vw] h-[18vw] bg-sky-100 rounded-full bg-gradient-to-r from-purple-700 to-orange-500 flex items-center justify-center">
+        {/* Other users' story circles */}
+        {Object.keys(groupedStories).filter(userId => userId !== user?._id).map((userId) => {
+          const userStories = groupedStories[userId];
+          const storyUser = userStories[0].user;
+          return (
+            <div key={userId} className="circle flex-shrink-0 flex flex-col items-center gap-1" onClick={() => handleStoryClick(userStories)}>
+              <div className="gradient w-[18vw] h-[18vw] bg-sky-100 rounded-full bg-gradient-to-r from-purple-700 to-orange-500 flex items-center justify-center">
                 <div className="inner w-[92%] h-[92%] rounded-full overflow-hidden">
-                <img
+                  <img
                     className="w-full h-full object-cover"
-                    src={story.user.profileImage}
+                    src={storyUser.profileImage}
                     alt=""
-                />
+                  />
                 </div>
+              </div>
+              <p className="name text-xs">{storyUser.username}</p>
             </div>
-            <p className="name text-xs">{story.user.username}</p>
-            </div>
-        ))}
+          );
+        })}
       </div>
 
-      {selectedStory && <StoryViewer story={selectedStory} onClose={() => setSelectedStory(null)} user={user} onDelete={handleDeleteStory} />}
+      {selectedStories && <StoryViewer stories={selectedStories} onClose={() => setSelectedStories(null)} user={user} onDelete={handleDeleteStory} />}
 
       <div className="posts mb-20">
         {([...posts]
