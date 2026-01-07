@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import api from '../api';
 import Navbar from '../components/Navbar';
+import StoryViewer from '../components/StoryViewer';
 
 const Feed = () => {
   const [user, setUser] = useState(null);
@@ -11,6 +12,8 @@ const Feed = () => {
   const [replyInput, setReplyInput] = useState({}); // { commentId: text }
   const [activeReplyCommentId, setActiveReplyCommentId] = useState(null); // To toggle reply input
   const [suggestions, setSuggestions] = useState([]);
+  const [stories, setStories] = useState([]);
+  const [selectedStory, setSelectedStory] = useState(null);
 
   const navigate = useNavigate();
 
@@ -26,8 +29,18 @@ const Feed = () => {
     }
   };
 
+  const fetchStories = async () => {
+    try {
+      const response = await api.get('/stories/feed');
+      setStories(response.data.stories);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
   useEffect(() => {
     fetchFeed();
+    fetchStories();
   }, [navigate]);
 
   const handleLike = async (postId) => {
@@ -99,38 +112,40 @@ const Feed = () => {
       
       {/* Stories Section */}
       <div className="story px-3 flex gap-3 overflow-auto mt-5">
-        <div className="circle flex-shrink-0">
-          <div className="w-[18vw] h-[18vw] bg-sky-100 rounded-full flex items-center justify-center">
-            <div className="inner w-[92%] h-[92%] rounded-full overflow-hidden">
-              <img
-                src={user.profileImage?.startsWith('http') ? user.profileImage : `http://localhost:3000/images/uploads/${user.profileImage}`}
-                alt="avatar"
-                className="w-full h-full object-cover"
-              />
+        <div className="circle flex-shrink-0 relative">
+          <Link to="/upload-story">
+            <div className="w-[18vw] h-[18vw] bg-sky-100 rounded-full flex items-center justify-center">
+              <div className="inner w-[92%] h-[92%] rounded-full overflow-hidden">
+                <img
+                  src={user.profileImage}
+                  alt="avatar"
+                  className="w-full h-full object-cover"
+                />
+              </div>
             </div>
-          </div>
+            <div className="absolute bottom-0 right-0 w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center text-white">
+              <i className="ri-add-line"></i>
+            </div>
+          </Link>
         </div>
         
-        {[
-          { name: "sixer_king", img: "https://ss-i.thgim.com/public/cricket/t7tdzn/article54603981.ece/alternates/FREE_1200/Yuvraj-Singh" },
-          { name: "mr_360", img: "https://images.news18.com/ibnlive/uploads/2021/07/1627310607_ab-de-villiers.jpg" },
-          { name: "king_kohli", img: "https://imgnew.outlookindia.com/public/uploads/articles/2021/10/12/Kohli-IPL-RCB-Celeb.jpg" },
-          { name: "mahi", img: "https://images.indianexpress.com/2019/04/dhoni-759-10.jpg" }
-        ].map((story, index) => (
-            <div key={index} className="circle flex-shrink-0 flex flex-col items-center gap-1">
+        {stories.map((story, index) => (
+          <div key={index} className="circle flex-shrink-0 flex flex-col items-center gap-1" onClick={() => setSelectedStory(story)}>
             <div className="gradient w-[18vw] h-[18vw] bg-sky-100 rounded-full bg-gradient-to-r from-purple-700 to-orange-500 flex items-center justify-center">
                 <div className="inner w-[92%] h-[92%] rounded-full overflow-hidden">
                 <img
                     className="w-full h-full object-cover"
-                    src={story.img}
+                    src={story.user.profileImage}
                     alt=""
                 />
                 </div>
             </div>
-            <p className="name text-xs">{story.name}</p>
+            <p className="name text-xs">{story.user.username}</p>
             </div>
         ))}
       </div>
+
+      {selectedStory && <StoryViewer story={selectedStory} onClose={() => setSelectedStory(null)} />}
 
       <div className="posts mb-20">
         {([...posts]
@@ -141,7 +156,7 @@ const Feed = () => {
               <div className="w-[8vw] h-[8vw] bg-sky-100 rounded-full overflow-hidden">
                 <img
                   className="w-full h-full object-cover"
-                  src={elem.user.profileImage?.startsWith('http') ? elem.user.profileImage : `http://localhost:3000/images/uploads/${elem.user.profileImage}`}
+                  src={elem.user.profileImage}
                   alt=""
                 />
               </div>
@@ -152,7 +167,7 @@ const Feed = () => {
             <div className="w-full h-96 mt-4 bg-sky-100 overflow-hidden">
               <img
                 className="w-full h-full object-cover"
-                src={elem.picture?.startsWith('http') ? elem.picture : `http://localhost:3000/images/uploads/${elem.picture}`}
+                src={elem.picture}
                 alt=""
               />
             </div>
@@ -263,7 +278,7 @@ const Feed = () => {
                   <div className="w-[8vw] h-[8vw] bg-sky-100 rounded-full overflow-hidden">
                     <img
                       className="w-full h-full object-cover"
-                      src={sug.profileImage?.startsWith('http') ? sug.profileImage : `http://localhost:3000/images/uploads/${sug.profileImage}`}
+                      src={sug.profileImage}
                       alt=""
                     />
                   </div>

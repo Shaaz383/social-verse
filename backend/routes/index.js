@@ -111,7 +111,7 @@ router.post( "/upload", isLoggedIn, upload.single("image"), async function (req,
     });
 
     const postData = await postModel.create({
-      picture: req.file.path,
+      picture: `http://localhost:3000/images/uploads/${req.file.filename}`,
       caption: req.body.caption,
       user: user._id,
     });
@@ -144,7 +144,7 @@ router.post("/update", isLoggedIn, upload.single("image"), async function (req, 
     ); 
 
     if (req.file) {
-      user.profileImage = req.file.path;
+      user.profileImage = `http://localhost:3000/images/uploads/${req.file.filename}`;
       await user.save();
     }
     

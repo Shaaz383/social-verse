@@ -15,6 +15,7 @@ import Forgot from './pages/Forgot';
 import Reset from './pages/Reset';
 import Notification from './pages/Notification';
 import Message from './pages/Message';
+import UploadStory from './pages/UploadStory';
 
 function App() {
   return (
@@ -26,6 +27,7 @@ function App() {
         <Route path="/feed" element={<Feed />} />
         <Route path="/search" element={<Search />} />
         <Route path="/upload" element={<Upload />} />
+        <Route path="/upload-story" element={<UploadStory />} />
         <Route path="/edit" element={<Edit />} />
         <Route path="/mypost" element={<MyPost />} />
         <Route path="/userprofile/:username" element={<UserProfile />} />

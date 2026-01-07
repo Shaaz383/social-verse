@@ -48,7 +48,7 @@ const Profile = () => {
         <div className="w-[19vw] h-[19vw] bg-sky-100 rounded-full overflow-hidden">
           {user.profileImage ? (
              <img
-                src={user.profileImage?.startsWith('http') ? user.profileImage : `http://localhost:3000/images/uploads/${user.profileImage}`}
+                src={user.profileImage}
                 alt="avatar"
                 className="w-full h-full object-cover"
               />
@@ -90,7 +90,7 @@ const Profile = () => {
             <Link to="/mypost">
               <img
                 className="w-full h-full object-cover"
-                src={post.picture?.startsWith('http') ? post.picture : `http://localhost:3000/images/uploads/${post.picture}`}
+                src={post.picture}
                 alt=""
               />
             </Link>

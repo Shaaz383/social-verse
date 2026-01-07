@@ -12,12 +12,11 @@ const Navbar = ({ user }) => {
       </Link>
       <Link to="/upload">
         <i className="text-[1.4rem] ri-add-box-line"></i>
-      </Link>
-      <Link to="/profile">
+      </Link>      <Link to="/profile">
         <div className="w-6 h-6 bg-zinc-300 rounded-full overflow-hidden">
           {user && user.profileImage ? (
             <img
-              src={user.profileImage?.startsWith('http') ? user.profileImage : `http://localhost:3000/images/uploads/${user.profileImage}`}
+              src={user.profileImage?.startsWith('http') ? user.profileImage : `http://localhost:3000/${user.profileImage}`}
               alt="avatar"
               className="w-full h-full object-cover"
             />
