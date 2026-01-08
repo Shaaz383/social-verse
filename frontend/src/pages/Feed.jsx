@@ -14,7 +14,6 @@ const Feed = () => {
   const [suggestions, setSuggestions] = useState([]);
   const [stories, setStories] = useState([]);
   const [selectedStories, setSelectedStories] = useState(null);
-  const [showAddModal, setShowAddModal] = useState(false);
 
   const navigate = useNavigate();
 
@@ -357,45 +356,6 @@ const Feed = () => {
                 </button>
               </div>
             ))}
-          </div>
-        </div>
-      )}
-
-      {/* Floating Add Button */}
-      <button
-        onClick={() => setShowAddModal(true)}
-        className="fixed bottom-20 right-4 w-14 h-14 bg-blue-500 rounded-full flex items-center justify-center text-white text-2xl shadow-lg z-40"
-      >
-        <i className="ri-add-line"></i>
-      </button>
-
-      {/* Add Modal */}
-      {showAddModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-end justify-center z-50" onClick={() => setShowAddModal(false)}>
-          <div className="bg-zinc-800 w-full max-w-md rounded-t-2xl p-6" onClick={(e) => e.stopPropagation()}>
-            <h3 className="text-white text-lg font-semibold mb-4 text-center">Create</h3>
-            <div className="space-y-3">
-              <button
-                onClick={() => {
-                  setShowAddModal(false);
-                  navigate('/upload-story');
-                }}
-                className="w-full flex items-center gap-3 p-4 bg-zinc-700 rounded-lg text-white hover:bg-zinc-600"
-              >
-                <i className="ri-camera-line text-2xl"></i>
-                <span>Story</span>
-              </button>
-              <button
-                onClick={() => {
-                  setShowAddModal(false);
-                  navigate('/upload');
-                }}
-                className="w-full flex items-center gap-3 p-4 bg-zinc-700 rounded-lg text-white hover:bg-zinc-600"
-              >
-                <i className="ri-image-line text-2xl"></i>
-                <span>Post</span>
-              </button>
-            </div>
           </div>
         </div>
       )}

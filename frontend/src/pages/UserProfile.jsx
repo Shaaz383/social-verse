@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import api from '../api';
 import Navbar from '../components/Navbar';
+import StoryViewer from '../components/StoryViewer';
 
 const UserProfile = () => {
   const { username } = useParams();
@@ -9,6 +10,8 @@ const UserProfile = () => {
   const [userProfile, setUserProfile] = useState(null); // Profile being viewed
   const [userPosts, setUserPosts] = useState([]);
   const [hasStories, setHasStories] = useState(false);
+  const [stories, setStories] = useState([]);
+  const [selectedStories, setSelectedStories] = useState(null);
 
   const fetchUserProfile = async () => {
     try {
@@ -19,6 +22,7 @@ const UserProfile = () => {
       
       // Check if user has stories
       const storiesResponse = await api.get('/stories/feed');
+      setStories(storiesResponse.data.stories);
       const userStories = storiesResponse.data.stories.filter(s => s.user._id === response.data.userProfile._id);
       setHasStories(userStories.length > 0);
     } catch (err) {
@@ -48,6 +52,42 @@ const UserProfile = () => {
     }
   };
 
+  const handleStoryClick = async () => {
+    const userStories = stories.filter(s => s.user._id === userProfile._id);
+    const story = userStories[0];
+    const isOwnStory = user && story.user._id === user._id;
+    if (!isOwnStory) {
+      try {
+        for (const s of userStories) {
+          await api.post(`/stories/view/${s._id}`);
+        }
+        await fetchUserProfile(); // Refresh stories
+        const updatedStories = stories.filter(s => s.user._id === userProfile._id);
+        setSelectedStories(updatedStories);
+      } catch (err) {
+        console.error('Failed to mark stories as viewed:', err);
+        setSelectedStories(userStories);
+      }
+    } else {
+      setSelectedStories(userStories);
+    }
+  };
+
+  const handleDeleteStory = async (storyId) => {
+    try {
+      await api.delete(`/stories/${storyId}`);
+      await fetchUserProfile();
+      const remainingStories = selectedStories.filter(s => s._id !== storyId);
+      if (remainingStories.length === 0) {
+        setSelectedStories(null);
+      } else {
+        setSelectedStories(remainingStories);
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
   if (!user || !userProfile) return <div className="text-white w-full min-h-screen bg-zinc-900 flex justify-center items-center">Loading...</div>;
 
   const isFollowing = user.following.includes(userProfile._id);
@@ -60,7 +100,7 @@ const UserProfile = () => {
       </div>
       <div className="flex justify-between items-center pl-6 pr-[12vw] mt-8">
         <div className={`w-[19vw] h-[19vw] rounded-full overflow-hidden ${hasStories ? 'p-1 bg-gradient-to-r from-purple-700 to-orange-500' : ''}`}>
-          <div className="w-full h-full bg-sky-100 rounded-full overflow-hidden">
+          <div className="w-full h-full bg-sky-100 rounded-full overflow-hidden" onClick={hasStories ? handleStoryClick : undefined} style={{ cursor: hasStories ? 'pointer' : 'default' }}>
             <img
               src={userProfile.profileImage?.startsWith('http') ? userProfile.profileImage : `http://localhost:3000/images/uploads/${userProfile.profileImage}`}
               alt="avatar"
@@ -115,6 +155,7 @@ const UserProfile = () => {
         ))}
       </div>
       <Navbar user={user} />
+      {selectedStories && <StoryViewer stories={selectedStories} onClose={() => setSelectedStories(null)} user={user} onDelete={handleDeleteStory} />}
     </div>
   );
 };
