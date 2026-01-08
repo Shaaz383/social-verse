@@ -1,15 +1,13 @@
 const multer = require('multer');
-const { v4: uuidv4 } = require("uuid");
-const path = require("path");
+const { CloudinaryStorage } = require('multer-storage-cloudinary');
+const cloudinary = require('cloudinary').v2;
 
-const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    cb(null, './public/images/uploads')
+const storage = new CloudinaryStorage({
+  cloudinary: cloudinary,
+  params: {
+    folder: 'insta-uploads',
+    allowed_formats: ['jpg', 'png', 'jpeg', 'gif', 'avif', 'webp'],
   },
-  filename: function (req, file, cb) {
-    const unique = uuidv4();
-    cb(null, unique + path.extname(file.originalname));
-  }
 });
 
 const upload = multer({ storage: storage });

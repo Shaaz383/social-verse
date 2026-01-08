@@ -12,6 +12,14 @@ require("dotenv").config()
 const passport = require('passport');
 const expressSession = require('express-session')
 
+// Cloudinary config
+const cloudinary = require('cloudinary').v2;
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET
+});
+
 var indexRouter = require('./routes/index');
 var usersRouter = require('./routes/users');
 var storyRouter = require('./routes/story');

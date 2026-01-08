@@ -19,7 +19,7 @@ router.post("/upload", isLoggedIn, upload.single("image"), async function (req, 
         });
 
         const story = await storyModel.create({
-            image: `http://localhost:3000/images/uploads/${req.file.filename}`,
+            image: req.file.path,
             user: user._id,
         });
 

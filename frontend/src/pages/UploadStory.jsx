@@ -7,6 +7,7 @@ const UploadStory = () => {
     const [image, setImage] = useState(null);
     const [preview, setPreview] = useState(null);
     const [dragOver, setDragOver] = useState(false);
+    const [loading, setLoading] = useState(false);
     const navigate = useNavigate();
 
     const handleImageChange = (e) => {
@@ -39,6 +40,7 @@ const UploadStory = () => {
     const handleUpload = async () => {
         if (!image) return;
 
+        setLoading(true);
         const formData = new FormData();
         formData.append('image', image);
 
@@ -51,6 +53,8 @@ const UploadStory = () => {
             navigate('/feed');
         } catch (err) {
             console.error(err);
+        } finally {
+            setLoading(false);
         }
     };
 
@@ -103,9 +107,10 @@ const UploadStory = () => {
                 {image && (
                     <button
                         onClick={handleUpload}
-                        className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 rounded mt-6 font-semibold"
+                        disabled={loading}
+                        className={`w-full py-3 rounded mt-6 font-semibold ${loading ? 'bg-gray-500 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700'} text-white`}
                     >
-                        Add Story
+                        {loading ? "Uploading..." : "Add Story"}
                     </button>
                 )}
             </div>
