@@ -45,16 +45,18 @@ const Profile = () => {
         </div>
       </div>
       <div className="flex justify-between items-center pl-6 pr-[12vw] mt-8">
-        <div className="w-[19vw] h-[19vw] bg-sky-100 rounded-full overflow-hidden">
-          {user.profileImage ? (
-             <img
-                src={user.profileImage}
-                alt="avatar"
-                className="w-full h-full object-cover"
-              />
-          ) : (
-            <div className="w-full h-full bg-gray-500"></div>
-          )}
+        <div className={`w-[19vw] h-[19vw] rounded-full overflow-hidden ${user.stories && user.stories.length > 0 ? 'p-1 bg-gradient-to-r from-purple-700 to-orange-500' : ''}`}>
+          <div className="w-full h-full bg-sky-100 rounded-full overflow-hidden">
+            {user.profileImage ? (
+               <img
+                  src={user.profileImage}
+                  alt="avatar"
+                  className="w-full h-full object-cover"
+                />
+            ) : (
+              <div className="w-full h-full bg-gray-500"></div>
+            )}
+          </div>
         </div>
         <div className="stats flex gap-5 items-center justify-between">
           <div className="flex flex-col items-center justify-center">

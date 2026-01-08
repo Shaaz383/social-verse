@@ -37,7 +37,7 @@ router.get("/feed", isLoggedIn, async function (req, res) {
         const followingIds = user.following.map(f => f._id);
         const authorIds = [user._id, ...followingIds];
 
-        const stories = await storyModel.find({ user: { $in: authorIds } }).populate("user").populate("viewers", "username name");
+        const stories = await storyModel.find({ user: { $in: authorIds } }).populate("user").populate("viewers", "username name").populate("likes", "username name");
 
         res.json({ stories });
     } catch (err) {
@@ -79,6 +79,29 @@ router.post("/view/:id", isLoggedIn, async function (req, res) {
         }
 
         res.json({ success: true });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+router.post("/like/:id", isLoggedIn, async function (req, res) {
+    try {
+        const user = await userModel.findOne({ username: req.session.passport.user });
+        const story = await storyModel.findById(req.params.id);
+
+        if (!story) {
+            return res.status(404).json({ error: "Story not found" });
+        }
+
+        const isLiked = story.likes.includes(user._id);
+        if (isLiked) {
+            story.likes = story.likes.filter(id => id.toString() !== user._id.toString());
+        } else {
+            story.likes.push(user._id);
+        }
+
+        await story.save();
+        res.json({ success: true, liked: !isLiked, likesCount: story.likes.length });
     } catch (err) {
         res.status(500).json({ error: err.message });
     }

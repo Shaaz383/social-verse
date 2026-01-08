@@ -1,9 +1,14 @@
 import React, { useState, useEffect, useRef } from 'react';
+import api from '../api';
 
 const StoryViewer = ({ stories, onClose, user, onDelete }) => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [showViewers, setShowViewers] = useState(false);
+  const [showLikes, setShowLikes] = useState(false);
   const [progress, setProgress] = useState(0);
+  const [isLiked, setIsLiked] = useState(false);
+  const [likesCount, setLikesCount] = useState(0);
+  const [isPaused, setIsPaused] = useState(false);
   const timerRef = useRef(null);
 
   const currentStory = stories[currentIndex];
@@ -12,12 +17,16 @@ const StoryViewer = ({ stories, onClose, user, onDelete }) => {
   useEffect(() => {
     if (!currentStory) return;
 
+    setIsLiked(currentStory.likes?.some(like => like._id === user?._id) || false);
+    setLikesCount(currentStory.likes?.length || 0);
+
     const duration = 5000; // 5 seconds per story
     const interval = 50; // Update every 50ms
     const steps = duration / interval;
     let currentStep = 0;
 
     const updateProgress = () => {
+      if (isPaused) return;
       currentStep++;
       setProgress((currentStep / steps) * 100);
       if (currentStep >= steps) {
@@ -32,7 +41,7 @@ const StoryViewer = ({ stories, onClose, user, onDelete }) => {
         clearInterval(timerRef.current);
       }
     };
-  }, [currentIndex, stories]);
+  }, [currentIndex, stories, isPaused]);
 
   const nextStory = () => {
     if (currentIndex < stories.length - 1) {
@@ -43,21 +52,21 @@ const StoryViewer = ({ stories, onClose, user, onDelete }) => {
     }
   };
 
-  const prevStory = () => {
-    if (currentIndex > 0) {
-      setCurrentIndex(currentIndex - 1);
-      setProgress(0);
+  const handleDoubleTap = async (e) => {
+    e.stopPropagation();
+    if (isOwnStory) return; // Can't like own story
+
+    try {
+      const response = await api.post(`/stories/like/${currentStory._id}`);
+      setIsLiked(response.data.liked);
+      setLikesCount(response.data.likesCount);
+    } catch (err) {
+      console.error('Failed to like story:', err);
     }
   };
 
-  const handleTap = (e) => {
-    const { clientX } = e;
-    const screenWidth = window.innerWidth;
-    if (clientX < screenWidth / 2) {
-      prevStory();
-    } else {
-      nextStory();
-    }
+  const handleTap = () => {
+    setIsPaused(!isPaused);
   };
 
   if (!currentStory) return null;
@@ -78,8 +87,25 @@ const StoryViewer = ({ stories, onClose, user, onDelete }) => {
         </div>
 
         <div className="bg-black h-full flex flex-col items-center justify-center rounded-lg">
-          <img src={currentStory.image} alt="story" className="max-h-full max-w-full object-contain" onClick={handleTap} />
+          <img
+            src={currentStory.image}
+            alt="story"
+            className="max-h-full max-w-full object-contain"
+            onClick={handleTap}
+            onDoubleClick={handleDoubleTap}
+          />
           <button className="absolute top-2 right-2 text-white text-2xl font-bold" onClick={onClose}>&times;</button>
+
+          {/* Like button */}
+          {!isOwnStory && (
+            <button
+              onClick={handleDoubleTap}
+              className={`absolute bottom-4 left-4 p-3 rounded-full ${isLiked ? 'bg-red-500' : 'bg-black bg-opacity-50'}`}
+            >
+              <i className={`ri-heart-${isLiked ? 'fill' : 'line'} text-white text-xl`}></i>
+            </button>
+          )}
+
           {isOwnStory && (
             <>
               <button
@@ -93,16 +119,30 @@ const StoryViewer = ({ stories, onClose, user, onDelete }) => {
               >
                 <i className="ri-delete-bin-line"></i>
               </button>
-              <button
-                className="absolute bottom-2 left-2 text-white bg-black bg-opacity-50 rounded px-2 py-1 flex items-center gap-1"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setShowViewers(!showViewers);
-                }}
-              >
-                <i className="ri-eye-line"></i>
-                <span>{currentStory.viewers ? currentStory.viewers.length : 0}</span>
-              </button>
+              <div className="absolute bottom-4 left-4 flex gap-4">
+                <button
+                  className="text-white bg-black bg-opacity-50 rounded px-2 py-1 flex items-center gap-1"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setShowViewers(!showViewers);
+                    setShowLikes(false);
+                  }}
+                >
+                  <i className="ri-eye-line"></i>
+                  <span>{currentStory.viewers ? currentStory.viewers.length : 0}</span>
+                </button>
+                <button
+                  className="text-white bg-black bg-opacity-50 rounded px-2 py-1 flex items-center gap-1"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setShowLikes(!showLikes);
+                    setShowViewers(false);
+                  }}
+                >
+                  <i className="ri-heart-line"></i>
+                  <span>{likesCount}</span>
+                </button>
+              </div>
             </>
           )}
         </div>
@@ -123,7 +163,24 @@ const StoryViewer = ({ stories, onClose, user, onDelete }) => {
             )}
           </div>
         )}
-      </div>
+        {/* Likes list */}
+        {showLikes && isOwnStory && (
+          <div className="absolute bottom-0 left-0 right-0 bg-zinc-900 text-white p-4 max-h-48 overflow-y-auto rounded-t-lg">
+            <h3 className="text-lg font-semibold mb-2">Liked by</h3>
+            {currentStory.likes && currentStory.likes.length > 0 ? (
+              currentStory.likes.map((liker, index) => (
+                <div key={index} className="flex items-center gap-2 py-1">
+                  <div className="w-8 h-8 bg-gray-500 rounded-full flex items-center justify-center text-sm">
+                    {liker.username.charAt(0).toUpperCase()}
+                  </div>
+                  <span>{liker.username}</span>
+                </div>
+              ))
+            ) : (
+              <p className="text-gray-400">No likes yet</p>
+            )}
+          </div>
+        )}      </div>
     </div>
   );
 };

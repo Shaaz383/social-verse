@@ -8,6 +8,7 @@ const UserProfile = () => {
   const [user, setUser] = useState(null); // Current logged in user
   const [userProfile, setUserProfile] = useState(null); // Profile being viewed
   const [userPosts, setUserPosts] = useState([]);
+  const [hasStories, setHasStories] = useState(false);
 
   const fetchUserProfile = async () => {
     try {
@@ -15,6 +16,11 @@ const UserProfile = () => {
       setUser(response.data.user);
       setUserProfile(response.data.userProfile);
       setUserPosts(response.data.userPosts);
+      
+      // Check if user has stories
+      const storiesResponse = await api.get('/stories/feed');
+      const userStories = storiesResponse.data.stories.filter(s => s.user._id === response.data.userProfile._id);
+      setHasStories(userStories.length > 0);
     } catch (err) {
       console.error(err);
     }
@@ -53,12 +59,14 @@ const UserProfile = () => {
         <div className="icons flex gap-5"></div>
       </div>
       <div className="flex justify-between items-center pl-6 pr-[12vw] mt-8">
-        <div className="w-[19vw] h-[19vw] bg-sky-100 rounded-full overflow-hidden">
-          <img
-            src={userProfile.profileImage?.startsWith('http') ? userProfile.profileImage : `http://localhost:3000/images/uploads/${userProfile.profileImage}`}
-            alt="avatar"
-            className="w-full h-full object-cover"
-          />
+        <div className={`w-[19vw] h-[19vw] rounded-full overflow-hidden ${hasStories ? 'p-1 bg-gradient-to-r from-purple-700 to-orange-500' : ''}`}>
+          <div className="w-full h-full bg-sky-100 rounded-full overflow-hidden">
+            <img
+              src={userProfile.profileImage?.startsWith('http') ? userProfile.profileImage : `http://localhost:3000/images/uploads/${userProfile.profileImage}`}
+              alt="avatar"
+              className="w-full h-full object-cover"
+            />
+          </div>
         </div>
         <div className="stats flex gap-5 items-center justify-between">
           <div className="flex flex-col items-center justify-center">
