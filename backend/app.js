@@ -28,6 +28,9 @@ var notificationRouter = require('./routes/notification');
 
 var app = express();
 
+// Trust Proxy for Render/Vercel
+app.set('trust proxy', 1);
+
 app.use(cors({
   origin: function (origin, callback) {
     const allowedOrigins = [
