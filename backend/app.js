@@ -21,7 +21,7 @@ cloudinary.config({
 });
 
 var indexRouter = require('./routes/index');
-var usersRouter = require('./routes/users');
+var userModel = require('./routes/users');
 var storyRouter = require('./routes/story');
 var dmRouter = require("./routes/dm");
 var notificationRouter = require('./routes/notification');
@@ -75,7 +75,7 @@ app.use(express.static(path.join(__dirname, 'public')));
 app.use('/images', express.static(path.join(__dirname, 'public/images')));
 
 app.use('/', indexRouter);
-app.use('/users', usersRouter);
+// app.use('/users', userModel); // Removed because it's a model, not a router
 app.use('/stories', storyRouter);
 app.use("/dm", dmRouter);
 app.use('/notification', notificationRouter);

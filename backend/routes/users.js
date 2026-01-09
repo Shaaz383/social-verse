@@ -2,14 +2,13 @@ const mongoose = require('mongoose');
 const plm = require('passport-local-mongoose');
 
 // Connect to MongoDB
-// mongoose.connect("mongodb+srv://asadakhtar800:instaclone@cluster0.0h1ly2o.mongodb.net/");
-// mongoose.connect("mongodb://127.0.0.1:27017/instaclone");
-mongoose.connect(process.env.MONGODB_URL || process.env.DATABASE_URL);
+const connectionString = process.env.MONGODB_URL || process.env.DATABASE_URL || "mongodb+srv://asadakhtar800_db_user:mydatabase234@cluster0.qmal1ui.mongodb.net/?appName=Cluster0";
 
+mongoose.connect(connectionString);
 
 // Listen for the 'open' event to check if the connection is successful
 mongoose.connection.once('open', () => {
-  console.log('Database connected');
+  console.log('Database connected successfully');
 });
 
 // Listen for the 'error' event to handle connection errors

@@ -66,9 +66,10 @@ const Register = () => {
             onChange={handleChange}
           />
           <input
-            className="w-full bg-blue-500 px-3 py-3 rounded-md mt-2 cursor-pointer text-white font-semibold"
+            className={`w-full bg-blue-500 px-3 py-3 rounded-md mt-2 cursor-pointer text-white font-semibold ${loading ? 'opacity-70 cursor-not-allowed' : ''}`}
             type="submit"
-            value="Make New Account"
+            value={loading ? "Creating Account..." : "Make New Account"}
+            disabled={loading}
           />
         </form>
         <span>

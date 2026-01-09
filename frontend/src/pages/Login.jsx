@@ -8,6 +8,7 @@ const Login = () => {
     password: ''
   });
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
   const handleChange = (e) => {
@@ -16,14 +17,21 @@ const Login = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setLoading(true);
+    setError('');
     try {
-      const response = await api.post('/login', formData);
+      const response = await api.post('/login', {
+        username: formData.username.trim(),
+        password: formData.password
+      });
       if (response.data.success) {
         navigate('/profile');
       }
     } catch (err) {
       console.error(err);
       setError(err.response?.data?.message || 'Login failed');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -50,9 +58,10 @@ const Login = () => {
             onChange={handleChange}
           />
           <input
-            className="w-full bg-blue-500 px-3 py-3 rounded-md mt-2 cursor-pointer text-white font-semibold"
+            className={`w-full bg-blue-500 px-3 py-3 rounded-md mt-2 cursor-pointer text-white font-semibold ${loading ? 'opacity-70 cursor-not-allowed' : ''}`}
             type="submit"
-            value="Log In"
+            value={loading ? "Logging in..." : "Log In"}
+            disabled={loading}
           />
         </form>
         <Link to="/forgot" className="text-sm text-gray-400 mt-2">
