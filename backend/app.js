@@ -36,6 +36,7 @@ app.use(cors({
     const allowedOrigins = [
       "http://localhost:5173",
       "https://social-verse-ten.vercel.app",
+      "https://social-verse-2n2hcwqkp-shaazs-projects-c396927a.vercel.app",
       process.env.CLIENT_ORIGIN
     ];
     // Allow requests with no origin (like mobile apps or curl requests)
