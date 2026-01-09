@@ -212,11 +212,11 @@ const Feed = () => {
       <div className="w-full px-4 flex items-center justify-between">
         <img className="w-1/4" src="/images/logo.png" alt="" />
         <div className="icons -mt-2 flex gap-5 items-center">
-          <Link to="/notification">
+          <Link to="/notification" className="relative">
             <i className="text-[1.4rem] ri-heart-3-line"></i>
-          </Link>
-          <Link to="/message">
-            <i className="text-[1.4rem] ri-messenger-line"></i>
+            {unreadCount > 0 && (
+              <span className="absolute top-0 right-0 bg-red-600 w-2 h-2 rounded-full transform translate-x-1 -translate-y-1"></span>
+            )}
           </Link>
         </div>
       </div>
@@ -435,6 +435,13 @@ const Feed = () => {
             ))}
           </div>
         </div>
+      )}
+
+      {shareModalOpen && (
+        <ShareModal 
+          onClose={() => setShareModalOpen(false)} 
+          postId={selectedPostId} 
+        />
       )}
 
       <Navbar user={user} />

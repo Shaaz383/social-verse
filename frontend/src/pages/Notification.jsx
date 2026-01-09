@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import api from '../api';
 import Navbar from '../components/Navbar';
+import { formatTimeAgo } from '../utils/formatTime';
 
 const Notification = () => {
   const [user, setUser] = useState(null);
@@ -52,7 +53,7 @@ const Notification = () => {
                     {notif.type === 'comment' && `commented: "${notif.commentText || 'Nice!'}"`}
                     {notif.type === 'follow' && 'started following you.'}
                     <div className="text-xs text-zinc-500 mt-0.5">
-                      {new Date(notif.createdAt).toLocaleDateString()}
+                      {formatTimeAgo(notif.createdAt)}
                     </div>
                   </div>
                 </div>
