@@ -33,7 +33,7 @@ const Profile = () => {
           <div className="dropdown">
             <i className="text-[1.4rem] ri-menu-line" id="dropdownMenu"></i>
             <div id="dropdownContent">
-              <Link to="#">Saved</Link>
+              <Link to="/saved">Saved</Link>
               <Link to="/edit">Edit Profile</Link>
               <Link to="/logout" onClick={async (e) => {
                   e.preventDefault();

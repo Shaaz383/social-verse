@@ -3,8 +3,10 @@ var router = express.Router();
 
 const userModel = require("./users");
 const postModel = require("./post");
+const Notification = require("../models/notification");
 const passport = require("passport");
 const localStrategy = require("passport-local");
+const { isLoggedIn } = require('./auth');
 
 const crypto = require("crypto");
 const nodemailer = require("nodemailer");
@@ -173,6 +175,20 @@ router.get("/like/post/:id", isLoggedIn, async function (req, res) {
 
     if (post.likes.map(like => like._id).indexOf(user._id) === -1) {
       post.likes.push(user._id);
+      
+      // Create notification
+      if (post.user.toString() !== user._id.toString()) {
+        const notif = await Notification.create({
+          recipient: post.user,
+          sender: user._id,
+          type: "like",
+          post: post._id
+        });
+        const io = req.app.get("io");
+        if (io) {
+          io.to(`user:${post.user.toString()}`).emit("notification:new", notif);
+        }
+      }
     } else {
       post.likes = post.likes.filter(like => like._id.toString() !== user._id.toString());
     }
@@ -207,6 +223,21 @@ router.post("/comment/:id", isLoggedIn, async function (req, res) {
     });
     
     await post.save();
+    
+    // Create notification
+    if (post.user.toString() !== user._id.toString()) {
+      const notif = await Notification.create({
+        recipient: post.user,
+        sender: user._id,
+        type: "comment",
+        post: post._id,
+        commentText: req.body.comment
+      });
+      const io = req.app.get("io");
+      if (io) {
+        io.to(`user:${post.user.toString()}`).emit("notification:new", notif);
+      }
+    }
     
     const populatedPost = await postModel.findOne({ _id: req.params.id })
         .populate("user")
@@ -266,6 +297,17 @@ router.post("/follow/:username", isLoggedIn, async function (req, res) {
     if (follower.following.indexOf(following._id) === -1) {
       follower.following.push(following._id);
       following.followers.push(follower._id);
+
+      // Create notification
+      const notif = await Notification.create({
+        recipient: following._id,
+        sender: follower._id,
+        type: "follow"
+      });
+      const io = req.app.get("io");
+      if (io) {
+        io.to(`user:${following._id.toString()}`).emit("notification:new", notif);
+      }
     }
     
     await follower.save();
@@ -289,6 +331,22 @@ router.post("/unfollow/:username", isLoggedIn, async function (req, res) {
     await follower.save();
     await following.save();
     res.json({ success: true, message: "Unfollowed" });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+router.get("/post/:id", isLoggedIn, async function (req, res) {
+  try {
+    const user = await userModel.findOne({ username: req.session.passport.user });
+    const post = await postModel.findOne({ _id: req.params.id })
+      .populate("user")
+      .populate({ path: "comments.user", model: "user" })
+      .populate({ path: "comments.replies.user", model: "user" });
+    
+    if (!post) return res.status(404).json({ error: "Post not found" });
+
+    res.json({ user, post });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -344,14 +402,34 @@ router.post("/reset/:token", async function (req, res) {
   }
 });
 
-router.get("/notification", isLoggedIn, async function (req, res) {
+router.post("/save/:id", isLoggedIn, async function (req, res) {
   try {
     const user = await userModel.findOne({ username: req.session.passport.user });
-    const posts = await postModel.find({ user: user._id })
-      .populate("likes")
-      .populate({ path: "comments.user", model: "user" })
-      .populate({ path: "comments.replies.user", model: "user" });
-    res.json({ user, posts });
+    if (user.saved.indexOf(req.params.id) === -1) {
+      user.saved.push(req.params.id);
+      await user.save();
+    }
+    res.json({ success: true, saved: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+router.post("/unsave/:id", isLoggedIn, async function (req, res) {
+  try {
+    const user = await userModel.findOne({ username: req.session.passport.user });
+    user.saved.pull(req.params.id);
+    await user.save();
+    res.json({ success: true, saved: false });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+router.get("/saved-posts", isLoggedIn, async function (req, res) {
+  try {
+    const user = await userModel.findOne({ username: req.session.passport.user }).populate("saved");
+    res.json({ user, posts: user.saved });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -366,12 +444,5 @@ router.get("/message", isLoggedIn, async function (req, res) {
     res.status(500).json({ error: err.message });
   }
 });
-
-function isLoggedIn(req, res, next) {
-  if (req.isAuthenticated()) {
-    return next();
-  }
-  res.status(401).json({ error: "Unauthorized" });
-}
 
 module.exports = router;

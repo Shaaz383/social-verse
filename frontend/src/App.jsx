@@ -14,6 +14,8 @@ import Following from './pages/Following';
 import Forgot from './pages/Forgot';
 import Reset from './pages/Reset';
 import Notification from './pages/Notification';
+import SavedPosts from './pages/SavedPosts';
+import PostDetail from './pages/PostDetail';
 import Message from './pages/Message';
 import UploadStory from './pages/UploadStory';
 
@@ -36,6 +38,7 @@ function App() {
         <Route path="/forgot" element={<Forgot />} />
         <Route path="/reset/:token" element={<Reset />} />
         <Route path="/notification" element={<Notification />} />
+        <Route path="/saved" element={<SavedPosts />} />
         <Route path="/message" element={<Message />} />
         <Route path="/message/:username" element={<Message />} />
       </Routes>

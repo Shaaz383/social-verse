@@ -25,6 +25,7 @@ const userSchema = mongoose.Schema({
   bio: String,
   profileImage: String,
   posts: [{ type: mongoose.Schema.Types.ObjectId, ref: "post" }],
+  saved: [{ type: mongoose.Schema.Types.ObjectId, ref: "post" }],
   stories: [{ type: mongoose.Schema.Types.ObjectId, ref: "story" }],
   followers: [{ type: mongoose.Schema.Types.ObjectId, ref: "user" }],
   following: [{ type: mongoose.Schema.Types.ObjectId, ref: 'user' }],

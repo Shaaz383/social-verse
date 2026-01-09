@@ -3,6 +3,8 @@ import { Link, useNavigate } from 'react-router-dom';
 import api from '../api';
 import Navbar from '../components/Navbar';
 import StoryViewer from '../components/StoryViewer';
+import ShareModal from '../components/ShareModal';
+import { getSocket } from '../socket';
 
 const Feed = () => {
   const [user, setUser] = useState(null);
@@ -14,6 +16,9 @@ const Feed = () => {
   const [suggestions, setSuggestions] = useState([]);
   const [stories, setStories] = useState([]);
   const [selectedStories, setSelectedStories] = useState(null);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [shareModalOpen, setShareModalOpen] = useState(false);
+  const [selectedPostId, setSelectedPostId] = useState(null);
 
   const navigate = useNavigate();
 
@@ -35,6 +40,9 @@ const Feed = () => {
       setStories(response.data.stories);
     } catch (err) {
       console.error(err);
+      if (err.response && err.response.status === 401) {
+        navigate('/login');
+      }
     }
   };
 
@@ -42,6 +50,50 @@ const Feed = () => {
     fetchFeed();
     fetchStories();
   }, [navigate]);
+
+  useEffect(() => {
+    let active = true;
+    let socket;
+    const initNotifications = async () => {
+      if (!user) return;
+      try {
+        const res = await api.get('/notification/unread-count');
+        if (active) setUnreadCount(res.data.count || 0);
+        
+        socket = await getSocket();
+        socket.on('notification:new', () => {
+          if (active) setUnreadCount(prev => prev + 1);
+        });
+      } catch (err) {
+        console.error(err);
+      }
+    };
+    initNotifications();
+    return () => {
+      active = false;
+      if (socket) socket.off('notification:new');
+    };
+  }, [user]);
+
+  const handleSave = async (postId) => {
+    try {
+      const isSaved = user.saved && user.saved.includes(postId);
+      if (isSaved) {
+        await api.post(`/unsave/${postId}`);
+        setUser(prev => ({ ...prev, saved: prev.saved.filter(id => id !== postId) }));
+      } else {
+        await api.post(`/save/${postId}`);
+        setUser(prev => ({ ...prev, saved: [...(prev.saved || []), postId] }));
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleShare = (postId) => {
+    setSelectedPostId(postId);
+    setShareModalOpen(true);
+  };
 
   const handleDeleteStory = async (storyId) => {
     try {
@@ -263,9 +315,17 @@ const Feed = () => {
                     <i className="ri-chat-3-line"></i>
                     <span className="text-sm">{elem.comments ? elem.comments.length : 0}</span>
                 </button>
-                <i className="ri-share-circle-line"></i>
+                <button onClick={() => handleShare(elem._id)}>
+                  <i className="ri-share-circle-line"></i>
+                </button>
               </div>
-              <i className="ri-bookmark-line"></i>
+              <button onClick={() => handleSave(elem._id)}>
+                {user.saved && user.saved.includes(elem._id) ? (
+                  <i className="ri-bookmark-fill text-white"></i>
+                ) : (
+                  <i className="ri-bookmark-line"></i>
+                )}
+              </button>
             </div>
             
             <h2 className="text-white font-light text-sm mt-2 px-4">
