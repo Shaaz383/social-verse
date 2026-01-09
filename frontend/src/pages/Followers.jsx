@@ -19,6 +19,17 @@ const Followers = () => {
     fetchUser();
   }, []);
 
+  const handleRemoveFollower = async (id) => {
+    try {
+      await api.post(`/remove-follower/${id}`);
+      // Refresh user data
+      const response = await api.get('/profile');
+      setUser(response.data.user);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
   if (!user) return <div className="text-white w-full min-h-screen bg-zinc-900 flex justify-center items-center">Loading...</div>;
 
   const filteredFollowers = user.followers.filter(follower => 
@@ -56,7 +67,7 @@ const Followers = () => {
                 </div>
               </div>
             </Link>
-            <button className="px-4 py-1 bg-white text-zinc-900 rounded">Remove</button>
+            <button onClick={() => handleRemoveFollower(follower._id)} className="px-4 py-1 bg-white text-zinc-900 rounded">Remove</button>
           </div>
         ))}
       </div>

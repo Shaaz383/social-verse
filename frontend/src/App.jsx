@@ -18,6 +18,7 @@ import SavedPosts from './pages/SavedPosts';
 import PostDetail from './pages/PostDetail';
 import Message from './pages/Message';
 import UploadStory from './pages/UploadStory';
+import UserPosts from './pages/UserPosts';
 
 function App() {
   return (
@@ -32,6 +33,7 @@ function App() {
         <Route path="/upload-story" element={<UploadStory />} />
         <Route path="/edit" element={<Edit />} />
         <Route path="/mypost" element={<MyPost />} />
+        <Route path="/userposts/:username" element={<UserPosts />} />
         <Route path="/userprofile/:username" element={<UserProfile />} />
         <Route path="/followers" element={<Followers />} />
         <Route path="/following" element={<Following />} />

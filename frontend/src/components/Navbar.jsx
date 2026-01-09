@@ -43,7 +43,7 @@ const Navbar = ({ user }) => {
 
   return (
     <>
-    <div className="footer text-white flex justify-between items-center w-full fixed bottom-0 z-[10] bg-zinc-900 px-10 py-3">
+    <div className="footer text-white flex justify-between items-center w-full fixed bottom-0 z-[10] bg-zinc-900 px-10 h-[60px] border-t border-zinc-800">
       <Link to="/feed">
         <i className="text-[1.4rem] ri-home-line"></i>
       </Link>

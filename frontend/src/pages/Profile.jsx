@@ -2,25 +2,57 @@ import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import api from '../api';
 import Navbar from '../components/Navbar';
+import StoryViewer from '../components/StoryViewer';
 
 const Profile = () => {
   const [user, setUser] = useState(null);
+  const [selectedStories, setSelectedStories] = useState(null);
   const navigate = useNavigate();
 
+  const fetchUser = async () => {
+    try {
+      const response = await api.get('/profile');
+      setUser(response.data.user);
+    } catch (err) {
+      console.error(err);
+      navigate('/login');
+    }
+  };
+
   useEffect(() => {
-    const fetchUser = async () => {
-      try {
-        const response = await api.get('/profile');
-        setUser(response.data.user);
-      } catch (err) {
-        console.error(err);
-        navigate('/login');
-      }
-    };
     fetchUser();
   }, [navigate]);
 
+  const handleStoryClick = () => {
+    if (user.stories && user.stories.length > 0) {
+      setSelectedStories(user.stories);
+    }
+  };
+
+  const handleDeleteStory = async (storyId) => {
+    try {
+      await api.delete(`/stories/${storyId}`);
+      await fetchUser();
+      const remainingStories = selectedStories.filter(s => s._id !== storyId);
+      if (remainingStories.length === 0) {
+        setSelectedStories(null);
+      } else {
+        setSelectedStories(remainingStories);
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
   if (!user) return <div className="text-white w-full min-h-screen bg-zinc-900 flex justify-center items-center">Loading...</div>;
+
+  // Check if all stories are viewed by the user (conceptually, for own profile, maybe just check if they exist?)
+  // For own profile, usually the ring is colorful if there are stories.
+  // The "seen" concept applies more to *other* users' stories.
+  // However, the prompt says "if a user has already viewed someone's story...".
+  // For my own stories, I am the viewer? No, I am the owner.
+  // Let's assume for own profile, if I have stories, it's colorful.
+  const hasStories = user.stories && user.stories.length > 0;
 
   return (
     <div className="w-full min-h-screen bg-zinc-900 text-white py-5 mb-12">
@@ -45,8 +77,12 @@ const Profile = () => {
         </div>
       </div>
       <div className="flex justify-between items-center pl-6 pr-[12vw] mt-8">
-        <div className={`w-[19vw] h-[19vw] rounded-full overflow-hidden ${user.stories && user.stories.length > 0 ? 'p-1 bg-gradient-to-r from-purple-700 to-orange-500' : ''}`}>
-          <div className="w-full h-full bg-sky-100 rounded-full overflow-hidden">
+        <div className={`w-[19vw] h-[19vw] rounded-full overflow-hidden ${hasStories ? 'p-1 bg-gradient-to-r from-purple-700 to-orange-500' : ''}`}>
+          <div 
+            className="w-full h-full bg-sky-100 rounded-full overflow-hidden"
+            onClick={hasStories ? handleStoryClick : undefined}
+            style={{ cursor: hasStories ? 'pointer' : 'default' }}
+          >
             {user.profileImage ? (
                <img
                   src={user.profileImage}
@@ -60,7 +96,9 @@ const Profile = () => {
         </div>
         <div className="stats flex gap-5 items-center justify-between">
           <div className="flex flex-col items-center justify-center">
-            <h3>{user.posts ? user.posts.length : 0}</h3>
+            <Link to="/mypost">
+              <h3>{user.posts ? user.posts.length : 0}</h3>
+            </Link>
             <h4>Posts</h4>
           </div>
           <div className="flex flex-col items-center justify-center">
@@ -100,6 +138,7 @@ const Profile = () => {
         ))}
       </div>
       <Navbar user={user} />
+      {selectedStories && <StoryViewer stories={selectedStories} onClose={() => setSelectedStories(null)} user={user} onDelete={handleDeleteStory} />}
     </div>
   );
 };

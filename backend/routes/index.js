@@ -65,7 +65,14 @@ router.get("/profile", isLoggedIn, async function (req, res) {
     const user = await userModel.findOne({ username: req.session.passport.user })
       .populate("posts")
       .populate("followers")
-      .populate("following");
+      .populate("following")
+      .populate({
+        path: "stories",
+        populate: [
+          { path: "viewers" },
+          { path: "user" }
+        ]
+      });
     res.json({ user });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -331,6 +338,31 @@ router.post("/unfollow/:username", isLoggedIn, async function (req, res) {
     await follower.save();
     await following.save();
     res.json({ success: true, message: "Unfollowed" });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+router.post("/remove-follower/:id", isLoggedIn, async function (req, res) {
+  try {
+    const user = await userModel.findOne({ username: req.session.passport.user });
+    const followerToRemove = await userModel.findById(req.params.id);
+
+    if (!followerToRemove) return res.status(404).json({ error: "User not found" });
+
+    // Remove them from my followers
+    if (user.followers.indexOf(followerToRemove._id) !== -1) {
+      user.followers.pull(followerToRemove._id);
+    }
+
+    // Remove me from their following
+    if (followerToRemove.following.indexOf(user._id) !== -1) {
+      followerToRemove.following.pull(user._id);
+    }
+
+    await user.save();
+    await followerToRemove.save();
+    res.json({ success: true, message: "Follower removed" });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

@@ -12,7 +12,14 @@ const StoryViewer = ({ stories, onClose, user, onDelete }) => {
   const timerRef = useRef(null);
 
   const currentStory = stories[currentIndex];
-  const isOwnStory = user && currentStory.user._id === user._id;
+  
+  const getStoryUserId = (story) => {
+    if (!story || !story.user) return null;
+    // If user is populated, it has _id, otherwise it is the ID itself
+    return story.user._id || story.user;
+  };
+
+  const isOwnStory = user && String(getStoryUserId(currentStory)) === String(user._id);
 
   useEffect(() => {
     if (!currentStory) return;

@@ -110,7 +110,9 @@ const UserProfile = () => {
         </div>
         <div className="stats flex gap-5 items-center justify-between">
           <div className="flex flex-col items-center justify-center">
-            <h3>{userPosts.length}</h3>
+            <Link to={`/userposts/${userProfile.username}`}>
+              <h3>{userPosts.length}</h3>
+            </Link>
             <h4>Posts</h4>
           </div>
           <div className="flex flex-col items-center justify-center">
@@ -137,9 +139,9 @@ const UserProfile = () => {
             <button onClick={handleUnfollow} className="px-12 py-1 bg-white text-zinc-900 rounded">
               Following
             </button>
-            <button className="px-12 py-1 bg-white text-zinc-900 rounded">
+            <Link to={`/message/${userProfile.username}`} className="px-12 py-1 bg-white text-zinc-900 rounded text-center">
               Message
-            </button>
+            </Link>
           </div>
         )}
       </div>
