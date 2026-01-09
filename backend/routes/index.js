@@ -428,7 +428,15 @@ router.post("/unsave/:id", isLoggedIn, async function (req, res) {
 
 router.get("/saved-posts", isLoggedIn, async function (req, res) {
   try {
-    const user = await userModel.findOne({ username: req.session.passport.user }).populate("saved");
+    const user = await userModel.findOne({ username: req.session.passport.user })
+      .populate({
+        path: "saved",
+        populate: [
+          { path: "user" },
+          { path: "comments.user", model: "user" },
+          { path: "comments.replies.user", model: "user" }
+        ]
+      });
     res.json({ user, posts: user.saved });
   } catch (err) {
     res.status(500).json({ error: err.message });
