@@ -126,10 +126,10 @@ io.on("connection", function (socket) {
       );
 
       const outgoing = {
-        _id: message._id,
-        conversation: message.conversation,
-        sender: message.sender,
-        recipient: message.recipient,
+        _id: message._id.toString(),
+        conversation: message.conversation.toString(),
+        sender: message.sender.toString(),
+        recipient: message.recipient.toString(),
         text: message.text,
         clientMessageId: message.clientMessageId,
         createdAt: message.createdAt,

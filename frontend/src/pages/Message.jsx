@@ -22,8 +22,15 @@ const Message = () => {
   const seenMessageIdsRef = useRef(new Set());
   const activeConversationIdRef = useRef(null);
 
+  const getSafeId = (id) => {
+    if (!id) return '';
+    if (typeof id === 'string') return id;
+    if (id._id) return String(id._id);
+    return String(id);
+  };
+
   const getMessageKey = (m) => {
-    const sender = m && m.sender ? String(m.sender) : '';
+    const sender = getSafeId(m && m.sender);
     const clientMessageId = m && m.clientMessageId ? String(m.clientMessageId) : '';
     if (sender && clientMessageId) return `${sender}:${clientMessageId}`;
     return m && m._id ? String(m._id) : '';
