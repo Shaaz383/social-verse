@@ -29,7 +29,7 @@ var server = http.createServer(app);
 
 var io = new Server(server, {
   cors: {
-    origin: process.env.SOCKET_CLIENT_ORIGIN || "http://localhost:5173",
+    origin: ["http://localhost:5173", "https://social-verse-ten.vercel.app", process.env.SOCKET_CLIENT_ORIGIN].filter(Boolean),
     credentials: true,
   },
 });

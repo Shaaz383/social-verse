@@ -62,8 +62,8 @@ app.use(flash());
 
 app.use(passport.initialize());
 app.use(passport.session());
-passport.serializeUser(usersRouter.serializeUser());
-passport.deserializeUser(usersRouter.deserializeUser())
+passport.serializeUser(userModel.serializeUser());
+passport.deserializeUser(userModel.deserializeUser())
 
 //----------------------------------------------------------------
 
@@ -75,7 +75,6 @@ app.use(express.static(path.join(__dirname, 'public')));
 app.use('/images', express.static(path.join(__dirname, 'public/images')));
 
 app.use('/', indexRouter);
-// app.use('/users', userModel); // Removed because it's a model, not a router
 app.use('/stories', storyRouter);
 app.use("/dm", dmRouter);
 app.use('/notification', notificationRouter);
