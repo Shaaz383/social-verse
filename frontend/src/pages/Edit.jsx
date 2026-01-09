@@ -81,7 +81,7 @@ const Edit = () => {
         <div className="image w-20 h-20 bg-sky-100 rounded-full overflow-hidden">
              <img
                 className="w-full h-full object-cover"
-                src={file ? URL.createObjectURL(file) : (user.profileImage?.startsWith('http') ? user.profileImage : `http://localhost:3000/images/uploads/${user.profileImage}`)}
+                src={file ? URL.createObjectURL(file) : (user.profileImage?.startsWith('http') ? user.profileImage : `${API_URL}/images/uploads/${user.profileImage}`)}
                 alt=""
               />
         </div>

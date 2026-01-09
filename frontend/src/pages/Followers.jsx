@@ -57,7 +57,7 @@ const Followers = () => {
                 <div className="image w-[11vw] h-[11vw] rounded-full bg-sky-100 overflow-hidden">
                   <img
                     className="w-full h-full object-cover"
-                    src={follower.profileImage?.startsWith('http') ? follower.profileImage : `http://localhost:3000/images/uploads/${follower.profileImage}`}
+                    src={follower.profileImage?.startsWith('http') ? follower.profileImage : `${API_URL}/images/uploads/${follower.profileImage}`}
                     alt=""
                   />
                 </div>

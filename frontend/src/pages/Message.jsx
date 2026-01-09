@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import api from '../api';
+import api, { API_URL } from '../api';
 import Navbar from '../components/Navbar';
 import { getSocket } from '../socket';
 
@@ -214,7 +214,7 @@ const Message = () => {
                   src={
                     otherUser.profileImage?.startsWith('http')
                       ? otherUser.profileImage
-                      : `${import.meta.env.VITE_API_URL || 'http://localhost:3000'}/${otherUser.profileImage}`
+                      : `${API_URL}/images/uploads/${otherUser.profileImage}`
                   }
                   alt=""
                 />

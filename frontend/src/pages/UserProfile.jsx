@@ -150,7 +150,7 @@ const UserProfile = () => {
           <div key={post._id} className="post w-[32.5%] h-32 bg-sky-100 overflow-hidden">
             <img
               className="w-full h-full object-cover"
-              src={post.picture?.startsWith('http') ? post.picture : `http://localhost:3000/images/uploads/${post.picture}`}
+              src={post.picture?.startsWith('http') ? post.picture : `${API_URL}/images/uploads/${post.picture}`}
               alt=""
             />
           </div>

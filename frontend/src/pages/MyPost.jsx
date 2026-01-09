@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import api from '../api';
+import api, { API_URL } from '../api';
 import Navbar from '../components/Navbar';
 
 const MyPost = () => {
@@ -80,7 +80,7 @@ const MyPost = () => {
             <div className="w-full h-96 mt-4 bg-sky-100 overflow-hidden">
               <img
                 className="w-full h-full object-cover"
-                src={elem.picture?.startsWith('http') ? elem.picture : `http://localhost:3000/images/uploads/${elem.picture}`}
+                src={elem.picture?.startsWith('http') ? elem.picture : `${API_URL}/images/uploads/${elem.picture}`}
                 alt=""
               />
             </div>
