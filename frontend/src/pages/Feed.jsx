@@ -103,6 +103,23 @@ const Feed = () => {
     }
   };
 
+  const handleLike = async (postId) => {
+    try {
+      const res = await api.get(`/like/post/${postId}`);
+      const updated = res.data && res.data.post ? res.data.post : null;
+      if (!updated) {
+        fetchFeed();
+        return;
+      }
+      const normalizedLikes = (updated.likes || []).map((l) => (typeof l === 'string' ? l : l._id));
+      setPosts((prev) =>
+        (prev || []).map((p) => (p._id === postId ? { ...p, likes: normalizedLikes } : p))
+      );
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
   const toggleComments = (postId) => {
     if (activeCommentPostId === postId) {
       setActiveCommentPostId(null);

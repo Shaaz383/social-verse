@@ -7,6 +7,12 @@
 var app = require('../app');
 var debug = require('debug')('insta:server');
 var http = require('http');
+const { Server } = require("socket.io");
+const jwt = require("jsonwebtoken");
+
+const userModel = require("../routes/users");
+const Conversation = require("../models/conversation");
+const Message = require("../models/message");
 
 /**
  * Get port from environment and store in Express.
@@ -20,6 +26,161 @@ app.set('port', port);
  */
 
 var server = http.createServer(app);
+
+var io = new Server(server, {
+  cors: {
+    origin: process.env.SOCKET_CLIENT_ORIGIN || "http://localhost:5173",
+    credentials: true,
+  },
+});
+
+app.set("io", io);
+
+function canMessage(currentUser, otherUserId) {
+  const otherIdStr = otherUserId.toString();
+  const follows = (currentUser.following || []).some((id) => id.toString() === otherIdStr);
+  const followedBy = (currentUser.followers || []).some((id) => id.toString() === otherIdStr);
+  return follows || followedBy;
+}
+
+io.use(function (socket, next) {
+  try {
+    const token = socket.handshake.auth && socket.handshake.auth.token;
+    const secret = process.env.SOCKET_SECRET_KEY || process.env.JWT_SECRET;
+    if (!token || !secret) return next(new Error("Unauthorized"));
+    const decoded = jwt.verify(token, secret);
+    socket.userId = decoded.sub;
+    next();
+  } catch (err) {
+    next(new Error("Unauthorized"));
+  }
+});
+
+io.on("connection", function (socket) {
+  const userId = socket.userId;
+  socket.join(`user:${userId}`);
+
+  socket.on("dm:send", async function (payload, ack) {
+    try {
+      const conversationId = payload && payload.conversationId ? String(payload.conversationId) : "";
+      const text = payload && payload.text ? String(payload.text).trim() : "";
+      const clientMessageId = payload && payload.clientMessageId ? String(payload.clientMessageId) : "";
+
+      if (!conversationId || !text || !clientMessageId) {
+        if (ack) return ack({ ok: false, error: "Invalid payload" });
+        return;
+      }
+
+      const conversation = await Conversation.findById(conversationId);
+      if (!conversation) {
+        if (ack) return ack({ ok: false, error: "Conversation not found" });
+        return;
+      }
+
+      const isMember = (conversation.participants || []).some((id) => id.toString() === userId);
+      if (!isMember) {
+        if (ack) return ack({ ok: false, error: "Forbidden" });
+        return;
+      }
+
+      const otherId = (conversation.participants || []).find((id) => id.toString() !== userId);
+      const recipientId = otherId ? otherId.toString() : "";
+      if (!recipientId) {
+        if (ack) return ack({ ok: false, error: "Invalid conversation" });
+        return;
+      }
+
+      const sender = await userModel.findById(userId).select("_id followers following");
+      if (!sender) {
+        if (ack) return ack({ ok: false, error: "Unauthorized" });
+        return;
+      }
+      if (!canMessage(sender, recipientId)) {
+        if (ack) return ack({ ok: false, error: "Messaging not allowed" });
+        return;
+      }
+
+      const now = new Date();
+      let message;
+      try {
+        message = await Message.create({
+          conversation: conversation._id,
+          sender: sender._id,
+          recipient: recipientId,
+          text,
+          clientMessageId,
+          deliveredAt: now,
+          seenAt: null,
+        });
+      } catch (err) {
+        if (err && err.code === 11000) {
+          message = await Message.findOne({ sender: sender._id, clientMessageId });
+        } else {
+          throw err;
+        }
+      }
+
+      await Conversation.updateOne(
+        { _id: conversation._id },
+        { $set: { lastMessageText: text, lastMessageAt: now } }
+      );
+
+      const outgoing = {
+        _id: message._id,
+        conversation: message.conversation,
+        sender: message.sender,
+        recipient: message.recipient,
+        text: message.text,
+        clientMessageId: message.clientMessageId,
+        createdAt: message.createdAt,
+        deliveredAt: message.deliveredAt,
+        seenAt: message.seenAt,
+      };
+
+      io.to(`user:${userId}`).emit("dm:message", outgoing);
+      io.to(`user:${recipientId}`).emit("dm:message", outgoing);
+
+      const unreadCount = await Message.countDocuments({ recipient: recipientId, seenAt: null });
+      io.to(`user:${recipientId}`).emit("dm:unread-count", { unreadCount });
+
+      if (ack) ack({ ok: true, message: outgoing });
+    } catch (err) {
+      if (ack) ack({ ok: false, error: err.message });
+    }
+  });
+
+  socket.on("dm:seen", async function (payload, ack) {
+    try {
+      const conversationId = payload && payload.conversationId ? String(payload.conversationId) : "";
+      if (!conversationId) {
+        if (ack) return ack({ ok: false, error: "Invalid payload" });
+        return;
+      }
+      const conversation = await Conversation.findById(conversationId);
+      if (!conversation) {
+        if (ack) return ack({ ok: false, error: "Conversation not found" });
+        return;
+      }
+      const isMember = (conversation.participants || []).some((id) => id.toString() === userId);
+      if (!isMember) {
+        if (ack) return ack({ ok: false, error: "Forbidden" });
+        return;
+      }
+
+      const now = new Date();
+      await Message.updateMany(
+        { conversation: conversation._id, recipient: userId, seenAt: null },
+        { $set: { seenAt: now } }
+      );
+
+      const unreadCount = await Message.countDocuments({ recipient: userId, seenAt: null });
+      io.to(`user:${userId}`).emit("dm:unread-count", { unreadCount });
+      if (ack) ack({ ok: true });
+    } catch (err) {
+      if (ack) ack({ ok: false, error: err.message });
+    }
+  });
+});
 
 /**
  * Listen on provided port, on all network interfaces.

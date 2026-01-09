@@ -23,11 +23,12 @@ cloudinary.config({
 var indexRouter = require('./routes/index');
 var usersRouter = require('./routes/users');
 var storyRouter = require('./routes/story');
+var dmRouter = require("./routes/dm");
 
 var app = express();
 
 app.use(cors({
-  origin: 'http://localhost:5173',
+  origin: process.env.CLIENT_ORIGIN || "http://localhost:5173",
   credentials: true
 }));
 
@@ -62,6 +63,7 @@ app.use('/images', express.static(path.join(__dirname, 'public/images')));
 app.use('/', indexRouter);
 app.use('/users', usersRouter);
 app.use('/stories', storyRouter);
+app.use("/dm", dmRouter);
 
 // catch 404 and forward to error handler
 app.use(function(req, res, next) {

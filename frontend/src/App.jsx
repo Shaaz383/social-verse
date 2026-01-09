@@ -37,6 +37,7 @@ function App() {
         <Route path="/reset/:token" element={<Reset />} />
         <Route path="/notification" element={<Notification />} />
         <Route path="/message" element={<Message />} />
+        <Route path="/message/:username" element={<Message />} />
       </Routes>
     </Router>
   );
