@@ -55,19 +55,19 @@ app.set('views', path.join(__dirname, 'views'));
 app.set('view engine', 'ejs');
 
 //Passport (after view engine)
-app.use(expressSession({
-  resave : false ,
-  saveUninitialized: true,
-  secret : process.env.SESSION_SECRET
-}))
+// app.use(expressSession({
+//   resave : false ,
+//   saveUninitialized: true,
+//   secret : process.env.SESSION_SECRET
+// }))
 
 // Initialize flash middleware
 app.use(flash());
 
-app.use(passport.initialize());
-app.use(passport.session());
-passport.serializeUser(userModel.serializeUser());
-passport.deserializeUser(userModel.deserializeUser())
+// app.use(passport.initialize());
+// app.use(passport.session());
+// passport.serializeUser(userModel.serializeUser());
+// passport.deserializeUser(userModel.deserializeUser())
 
 //----------------------------------------------------------------
 

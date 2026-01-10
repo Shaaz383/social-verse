@@ -4,9 +4,10 @@ var router = express.Router();
 const userModel = require("./users");
 const postModel = require("./post");
 const Notification = require("../models/notification");
-const passport = require("passport");
-const localStrategy = require("passport-local");
-const { isLoggedIn } = require('./auth');
+// const passport = require("passport"); // Removed
+// const localStrategy = require("passport-local"); // Removed
+const { authenticateToken } = require('../middleware/auth');
+const jwt = require('jsonwebtoken');
 
 const crypto = require("crypto");
 const nodemailer = require("nodemailer");
@@ -14,55 +15,83 @@ const async = require('async');
 
 const upload = require("./multer");
 
-passport.use(new localStrategy(userModel.authenticate()));
+// passport.use(new localStrategy(userModel.authenticate())); // Removed
 
-// Auth Check
-router.get("/check-auth", function (req, res) {
-  if (req.isAuthenticated()) {
-    res.json({ isAuthenticated: true, user: req.user });
-  } else {
-    res.json({ isAuthenticated: false });
+// Auth Check (Verify Token)
+router.get("/check-auth", authenticateToken, function (req, res) {
+  res.json({ isAuthenticated: true, user: req.user });
+});
+
+router.post("/register", async function (req, res) {
+  try {
+    const { username, name, email, password } = req.body;
+    
+    // Check if user exists
+    const existingUser = await userModel.findOne({ $or: [{ username }, { email }] });
+    if (existingUser) {
+      return res.status(400).json({ success: false, message: "Username or email already exists" });
+    }
+
+    const newUser = new userModel({
+      username,
+      name,
+      email,
+      password
+    });
+
+    await newUser.save();
+
+    // Generate JWT
+    const token = jwt.sign(
+      { id: newUser._id, username: newUser.username },
+      process.env.JWT_SECRET || 'secretkey',
+      { expiresIn: '1d' }
+    );
+
+    res.json({ success: true, token, user: newUser });
+
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, error: err.message });
   }
 });
 
-router.post("/register", function (req, res) {
-  var userdata = new userModel({
-    username: req.body.username,
-    name: req.body.name,
-    email: req.body.email,
-  });
-  userModel.register(userdata, req.body.password)
-    .then(function (registereduser) {
-      passport.authenticate("local")(req, res, function () {
-        res.json({ success: true, user: registereduser });
-      });
-    })
-    .catch(function(err) {
-      res.status(500).json({ success: false, error: err.message });
-    });
-});
-
-router.post("/login", function(req, res, next) {
-  passport.authenticate("local", function(err, user, info) {
-    if (err) { return next(err); }
-    if (!user) { return res.status(401).json({ success: false, message: "Invalid credentials" }); }
-    req.logIn(user, function(err) {
-      if (err) { return next(err); }
-      return res.json({ success: true, user: user });
-    });
-  })(req, res, next);
-});
-
-router.get("/logout", function (req, res, next) {
-  req.logout(function (err) {
-    if (err) return next(err);
-    res.json({ success: true, message: "Logged out" });
-  });
-});
-
-router.get("/profile", isLoggedIn, async function (req, res) {
+router.post("/login", async function(req, res, next) {
   try {
-    const user = await userModel.findOne({ username: req.session.passport.user })
+    const { username, password } = req.body;
+    
+    const user = await userModel.findOne({ username });
+    if (!user) {
+      return res.status(401).json({ success: false, message: "Invalid credentials" });
+    }
+
+    const isMatch = await user.comparePassword(password);
+    if (!isMatch) {
+      return res.status(401).json({ success: false, message: "Invalid credentials" });
+    }
+
+    // Generate JWT
+    const token = jwt.sign(
+      { id: user._id, username: user.username },
+      process.env.JWT_SECRET || 'secretkey',
+      { expiresIn: '1d' }
+    );
+
+    res.json({ success: true, token, user });
+
+  } catch (err) {
+    next(err);
+  }
+});
+
+router.get("/logout", function (req, res) {
+  // Client should clear token
+  res.json({ success: true, message: "Logged out" });
+});
+
+router.get("/profile", authenticateToken, async function (req, res) {
+  try {
+    const user = await userModel.findOne({ username: req.user.username }) // req.user set by middleware
       .populate("posts")
       .populate("followers")
       .populate("following")
@@ -79,9 +108,9 @@ router.get("/profile", isLoggedIn, async function (req, res) {
   }
 });
 
-router.get("/feed", isLoggedIn, async function (req, res) {
+router.get("/feed", authenticateToken, async function (req, res) {
   try {
-    const user = await userModel.findOne({ username: req.session.passport.user });
+    const user = await userModel.findOne({ username: req.user.username });
     const authorIds = [user._id, ...user.following];
     const posts = await postModel.find({ user: { $in: authorIds } })
       .populate("user")
@@ -103,9 +132,9 @@ router.get("/feed", isLoggedIn, async function (req, res) {
   }
 });
 
-router.get("/mypost", isLoggedIn, async function (req, res) {
+router.get("/mypost", authenticateToken, async function (req, res) {
   try {
-    const user = await userModel.findOne({ username: req.session.passport.user }).populate("posts");
+    const user = await userModel.findOne({ username: req.user.username }).populate("posts");
     res.json({ user, posts: user.posts });
   } catch (error) {
     console.error(error);
@@ -113,10 +142,10 @@ router.get("/mypost", isLoggedIn, async function (req, res) {
   }
 });
 
-router.post( "/upload", isLoggedIn, upload.single("image"), async function (req, res) {
+router.post( "/upload", authenticateToken, upload.single("image"), async function (req, res) {
   try {
     const user = await userModel.findOne({
-      username: req.session.passport.user,
+      username: req.user.username,
     });
 
     const postData = await postModel.create({
@@ -132,7 +161,7 @@ router.post( "/upload", isLoggedIn, upload.single("image"), async function (req,
   }
 });
 
-router.post("/update", isLoggedIn, upload.single("image"), async function (req, res) {
+router.post("/update", authenticateToken, upload.single("image"), async function (req, res) {
   try {
     const updateData = {
       username: req.body.username,
@@ -147,7 +176,7 @@ router.post("/update", isLoggedIn, upload.single("image"), async function (req, 
     }
 
     const user = await userModel.findOneAndUpdate(
-      { username: req.session.passport.user },
+      { username: req.user.username },
       updateData,
       { new: true }
     ); 
@@ -163,21 +192,21 @@ router.post("/update", isLoggedIn, upload.single("image"), async function (req, 
   }
 });
 
-router.get("/search", isLoggedIn, async function (req, res) {
-  const user = await userModel.findOne({ username: req.session.passport.user })
+router.get("/search", authenticateToken, async function (req, res) {
+  const user = await userModel.findOne({ username: req.user.username })
   res.json({ user });
 });
 
-router.get("/username/:username", isLoggedIn, async function (req, res) {
+router.get("/username/:username", authenticateToken, async function (req, res) {
   const regex = new RegExp(`^${req.params.username}`, "i");
   const users = await userModel.find({ username: regex });
   res.json(users)
 });
 
 // Other routes (follow, like, etc.) adapted to JSON
-router.get("/like/post/:id", isLoggedIn, async function (req, res) {
+router.get("/like/post/:id", authenticateToken, async function (req, res) {
   try {
-    const user = await userModel.findOne({ username: req.session.passport.user });
+    const user = await userModel.findOne({ username: req.user.username });
     const post = await postModel.findOne({ _id: req.params.id }).populate('likes');
 
     if (post.likes.map(like => like._id).indexOf(user._id) === -1) {
@@ -207,10 +236,10 @@ router.get("/like/post/:id", isLoggedIn, async function (req, res) {
   }
 });
 
-router.post("/deletepost/:id", isLoggedIn, async function (req, res) {
+router.post("/deletepost/:id", authenticateToken, async function (req, res) {
   try {
     const post = await postModel.findOneAndDelete({ _id: req.params.id });
-    const user = await userModel.findOne({ username: req.session.passport.user });
+    const user = await userModel.findOne({ username: req.user.username });
     user.posts.pull(req.params.id);
     await user.save();
     res.json({ success: true, message: "Post deleted" });
@@ -219,9 +248,9 @@ router.post("/deletepost/:id", isLoggedIn, async function (req, res) {
   }
 });
 
-router.post("/comment/:id", isLoggedIn, async function (req, res) {
+router.post("/comment/:id", authenticateToken, async function (req, res) {
   try {
-    const user = await userModel.findOne({ username: req.session.passport.user });
+    const user = await userModel.findOne({ username: req.user.username });
     const post = await postModel.findOne({ _id: req.params.id });
     
     post.comments.push({
@@ -257,9 +286,9 @@ router.post("/comment/:id", isLoggedIn, async function (req, res) {
   }
 });
 
-router.post("/comment/reply/:postId/:commentId", isLoggedIn, async function (req, res) {
+router.post("/comment/reply/:postId/:commentId", authenticateToken, async function (req, res) {
   try {
-    const user = await userModel.findOne({ username: req.session.passport.user });
+    const user = await userModel.findOne({ username: req.user.username });
     const post = await postModel.findOne({ _id: req.params.postId });
     
     const commentIndex = post.comments.findIndex(c => c._id.toString() === req.params.commentId);
@@ -283,9 +312,9 @@ router.post("/comment/reply/:postId/:commentId", isLoggedIn, async function (req
   }
 });
 
-router.get("/userprofile/:username", isLoggedIn, async function (req, res) {
+router.get("/userprofile/:username", authenticateToken, async function (req, res) {
   try {
-    const user = await userModel.findOne({ username: req.session.passport.user });
+    const user = await userModel.findOne({ username: req.user.username });
     const userProfile = await userModel.findOne({ username: req.params.username }).populate("posts");
     
     if (!userProfile) return res.status(404).json({ error: "User not found" });
@@ -296,9 +325,9 @@ router.get("/userprofile/:username", isLoggedIn, async function (req, res) {
   }
 });
 
-router.post("/follow/:username", isLoggedIn, async function (req, res) {
+router.post("/follow/:username", authenticateToken, async function (req, res) {
   try {
-    const follower = await userModel.findOne({ username: req.session.passport.user });
+    const follower = await userModel.findOne({ username: req.user.username });
     const following = await userModel.findOne({ username: req.params.username });
 
     if (follower.following.indexOf(following._id) === -1) {
@@ -325,9 +354,9 @@ router.post("/follow/:username", isLoggedIn, async function (req, res) {
   }
 });
 
-router.post("/unfollow/:username", isLoggedIn, async function (req, res) {
+router.post("/unfollow/:username", authenticateToken, async function (req, res) {
   try {
-    const follower = await userModel.findOne({ username: req.session.passport.user });
+    const follower = await userModel.findOne({ username: req.user.username });
     const following = await userModel.findOne({ username: req.params.username });
 
     if (follower.following.indexOf(following._id) !== -1) {
@@ -343,9 +372,9 @@ router.post("/unfollow/:username", isLoggedIn, async function (req, res) {
   }
 });
 
-router.post("/remove-follower/:id", isLoggedIn, async function (req, res) {
+router.post("/remove-follower/:id", authenticateToken, async function (req, res) {
   try {
-    const user = await userModel.findOne({ username: req.session.passport.user });
+    const user = await userModel.findOne({ username: req.user.username });
     const followerToRemove = await userModel.findById(req.params.id);
 
     if (!followerToRemove) return res.status(404).json({ error: "User not found" });
@@ -368,9 +397,9 @@ router.post("/remove-follower/:id", isLoggedIn, async function (req, res) {
   }
 });
 
-router.get("/post/:id", isLoggedIn, async function (req, res) {
+router.get("/post/:id", authenticateToken, async function (req, res) {
   try {
-    const user = await userModel.findOne({ username: req.session.passport.user });
+    const user = await userModel.findOne({ username: req.user.username });
     const post = await postModel.findOne({ _id: req.params.id })
       .populate("user")
       .populate({ path: "comments.user", model: "user" })
@@ -434,9 +463,9 @@ router.post("/reset/:token", async function (req, res) {
   }
 });
 
-router.post("/save/:id", isLoggedIn, async function (req, res) {
+router.post("/save/:id", authenticateToken, async function (req, res) {
   try {
-    const user = await userModel.findOne({ username: req.session.passport.user });
+    const user = await userModel.findOne({ username: req.user.username });
     if (user.saved.indexOf(req.params.id) === -1) {
       user.saved.push(req.params.id);
       await user.save();
@@ -447,9 +476,9 @@ router.post("/save/:id", isLoggedIn, async function (req, res) {
   }
 });
 
-router.post("/unsave/:id", isLoggedIn, async function (req, res) {
+router.post("/unsave/:id", authenticateToken, async function (req, res) {
   try {
-    const user = await userModel.findOne({ username: req.session.passport.user });
+    const user = await userModel.findOne({ username: req.user.username });
     user.saved.pull(req.params.id);
     await user.save();
     res.json({ success: true, saved: false });
@@ -458,9 +487,9 @@ router.post("/unsave/:id", isLoggedIn, async function (req, res) {
   }
 });
 
-router.get("/saved-posts", isLoggedIn, async function (req, res) {
+router.get("/saved-posts", authenticateToken, async function (req, res) {
   try {
-    const user = await userModel.findOne({ username: req.session.passport.user })
+    const user = await userModel.findOne({ username: req.user.username })
       .populate({
         path: "saved",
         populate: [
@@ -475,9 +504,9 @@ router.get("/saved-posts", isLoggedIn, async function (req, res) {
   }
 });
 
-router.get("/message", isLoggedIn, async function (req, res) {
+router.get("/message", authenticateToken, async function (req, res) {
   try {
-    const user = await userModel.findOne({ username: req.session.passport.user });
+    const user = await userModel.findOne({ username: req.user.username });
     const users = await userModel.find({ _id: { $ne: user._id } }); // All users except current
     res.json({ user, users });
   } catch (err) {

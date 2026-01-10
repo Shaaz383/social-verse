@@ -22,6 +22,7 @@ const Register = () => {
     try {
       const response = await api.post('/register', formData);
       if (response.data.success) {
+        localStorage.setItem('token', response.data.token);
         navigate('/profile'); // Redirect to profile after register (auto login)
       }
     } catch (error) {

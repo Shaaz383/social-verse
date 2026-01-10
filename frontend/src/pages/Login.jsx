@@ -25,6 +25,7 @@ const Login = () => {
         password: formData.password
       });
       if (response.data.success) {
+        localStorage.setItem('token', response.data.token);
         navigate('/profile');
       }
     } catch (err) {

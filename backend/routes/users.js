@@ -1,5 +1,5 @@
 const mongoose = require('mongoose');
-const plm = require('passport-local-mongoose');
+const bcrypt = require('bcryptjs');
 
 // Connect to MongoDB
 const connectionString = process.env.MONGODB_URL || process.env.DATABASE_URL ;
@@ -17,10 +17,10 @@ mongoose.connection.on('error', (error) => {
 });
 
 const userSchema = mongoose.Schema({
-  username: String,
+  username: { type: String, required: true, unique: true },
   name: String,
-  email: String,
-  password: String,
+  email: { type: String, required: true, unique: true },
+  password: { type: String, required: true },
   bio: String,
   profileImage: String,
   posts: [{ type: mongoose.Schema.Types.ObjectId, ref: "post" }],
@@ -33,7 +33,22 @@ const userSchema = mongoose.Schema({
   resetPasswordExpires:  Date,
 });
 
-userSchema.plugin(plm);
+// Hash password before saving
+userSchema.pre('save', async function(next) {
+  if (!this.isModified('password')) return next();
+  try {
+    const salt = await bcrypt.genSalt(10);
+    this.password = await bcrypt.hash(this.password, salt);
+    next();
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Method to compare password
+userSchema.methods.comparePassword = async function(candidatePassword) {
+  return await bcrypt.compare(candidatePassword, this.password);
+};
 
 // Create the user model
 module.exports = mongoose.model('user', userSchema);

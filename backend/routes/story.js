@@ -4,18 +4,12 @@ var router = express.Router();
 const userModel = require("./users");
 const storyModel = require("../models/story");
 const upload = require("./multer");
+const { authenticateToken } = require('../middleware/auth');
 
-function isLoggedIn(req, res, next) {
-    if (req.isAuthenticated()) {
-        return next();
-    }
-    res.status(401).json({ error: "Unauthorized" });
-}
-
-router.post("/upload", isLoggedIn, upload.single("image"), async function (req, res) {
+router.post("/upload", authenticateToken, upload.single("image"), async function (req, res) {
     try {
         const user = await userModel.findOne({
-            username: req.session.passport.user,
+            username: req.user.username,
         });
 
         const story = await storyModel.create({
@@ -31,9 +25,9 @@ router.post("/upload", isLoggedIn, upload.single("image"), async function (req, 
     }
 });
 
-router.get("/feed", isLoggedIn, async function (req, res) {
+router.get("/feed", authenticateToken, async function (req, res) {
     try {
-        const user = await userModel.findOne({ username: req.session.passport.user }).populate("following");
+        const user = await userModel.findOne({ username: req.user.username }).populate("following");
         const followingIds = user.following.map(f => f._id);
         const authorIds = [user._id, ...followingIds];
 
@@ -45,9 +39,9 @@ router.get("/feed", isLoggedIn, async function (req, res) {
     }
 });
 
-router.delete("/:id", isLoggedIn, async function (req, res) {
+router.delete("/:id", authenticateToken, async function (req, res) {
     try {
-        const user = await userModel.findOne({ username: req.session.passport.user });
+        const user = await userModel.findOne({ username: req.user.username });
         const story = await storyModel.findOne({ _id: req.params.id, user: user._id });
 
         if (!story) {
@@ -64,9 +58,9 @@ router.delete("/:id", isLoggedIn, async function (req, res) {
     }
 });
 
-router.post("/view/:id", isLoggedIn, async function (req, res) {
+router.post("/view/:id", authenticateToken, async function (req, res) {
     try {
-        const user = await userModel.findOne({ username: req.session.passport.user });
+        const user = await userModel.findOne({ username: req.user.username });
         const story = await storyModel.findById(req.params.id);
 
         if (!story) {
@@ -84,9 +78,9 @@ router.post("/view/:id", isLoggedIn, async function (req, res) {
     }
 });
 
-router.post("/like/:id", isLoggedIn, async function (req, res) {
+router.post("/like/:id", authenticateToken, async function (req, res) {
     try {
-        const user = await userModel.findOne({ username: req.session.passport.user });
+        const user = await userModel.findOne({ username: req.user.username });
         const story = await storyModel.findById(req.params.id);
 
         if (!story) {

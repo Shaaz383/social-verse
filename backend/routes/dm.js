@@ -6,13 +6,7 @@ const jwt = require("jsonwebtoken");
 const userModel = require("./users");
 const Conversation = require("../models/conversation");
 const Message = require("../models/message");
-
-function isLoggedIn(req, res, next) {
-  if (req.isAuthenticated()) {
-    return next();
-  }
-  res.status(401).json({ error: "Unauthorized" });
-}
+const { authenticateToken } = require('../middleware/auth');
 
 function normalizePair(aId, bId) {
   const a = aId.toString();
@@ -29,10 +23,10 @@ function canMessage(currentUser, otherUserId) {
 }
 
 async function getCurrentUser(req) {
-  return userModel.findOne({ username: req.session.passport.user });
+  return userModel.findOne({ username: req.user.username });
 }
 
-router.get("/socket-token", isLoggedIn, async function (req, res) {
+router.get("/socket-token", authenticateToken, async function (req, res) {
   try {
     const user = await getCurrentUser(req);
     const secret = process.env.SOCKET_SECRET_KEY || process.env.JWT_SECRET;
@@ -46,7 +40,7 @@ router.get("/socket-token", isLoggedIn, async function (req, res) {
   }
 });
 
-router.get("/eligible-users", isLoggedIn, async function (req, res) {
+router.get("/eligible-users", authenticateToken, async function (req, res) {
   try {
     const user = await getCurrentUser(req);
     const eligibleIds = Array.from(
@@ -62,7 +56,7 @@ router.get("/eligible-users", isLoggedIn, async function (req, res) {
   }
 });
 
-router.post("/with/:username", isLoggedIn, async function (req, res) {
+router.post("/with/:username", authenticateToken, async function (req, res) {
   try {
     const user = await getCurrentUser(req);
     const other = await userModel.findOne({ username: req.params.username }).select("_id username name profileImage");
@@ -84,7 +78,7 @@ router.post("/with/:username", isLoggedIn, async function (req, res) {
   }
 });
 
-router.get("/conversations", isLoggedIn, async function (req, res) {
+router.get("/conversations", authenticateToken, async function (req, res) {
   try {
     const user = await getCurrentUser(req);
     const conversations = await Conversation.find({ participants: user._id })
@@ -115,7 +109,7 @@ router.get("/conversations", isLoggedIn, async function (req, res) {
   }
 });
 
-router.get("/conversations/:conversationId/messages", isLoggedIn, async function (req, res) {
+router.get("/conversations/:conversationId/messages", authenticateToken, async function (req, res) {
   try {
     const user = await getCurrentUser(req);
     const conversation = await Conversation.findById(req.params.conversationId);
@@ -135,7 +129,7 @@ router.get("/conversations/:conversationId/messages", isLoggedIn, async function
   }
 });
 
-router.post("/conversations/:conversationId/messages", isLoggedIn, async function (req, res) {
+router.post("/conversations/:conversationId/messages", authenticateToken, async function (req, res) {
   try {
     const user = await getCurrentUser(req);
     const conversation = await Conversation.findById(req.params.conversationId);
@@ -196,7 +190,7 @@ router.post("/conversations/:conversationId/messages", isLoggedIn, async functio
   }
 });
 
-router.post("/conversations/:conversationId/seen", isLoggedIn, async function (req, res) {
+router.post("/conversations/:conversationId/seen", authenticateToken, async function (req, res) {
   try {
     const user = await getCurrentUser(req);
     const conversation = await Conversation.findById(req.params.conversationId);
@@ -222,7 +216,7 @@ router.post("/conversations/:conversationId/seen", isLoggedIn, async function (r
   }
 });
 
-router.get("/unread-count", isLoggedIn, async function (req, res) {
+router.get("/unread-count", authenticateToken, async function (req, res) {
   try {
     const user = await getCurrentUser(req);
     const unreadCount = await Message.countDocuments({ recipient: user._id, seenAt: null });

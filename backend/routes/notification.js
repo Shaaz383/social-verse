@@ -4,11 +4,11 @@ var router = express.Router();
 const userModel = require("./users");
 const Notification = require("../models/notification");
 
-const { isLoggedIn } = require('./auth');
+const { authenticateToken } = require('../middleware/auth');
 
-router.get("/", isLoggedIn, async function (req, res) {
+router.get("/", authenticateToken, async function (req, res) {
   try {
-    const user = await userModel.findOne({ username: req.session.passport.user });
+    const user = await userModel.findOne({ username: req.user.username });
     
     const notifications = await Notification.find({ recipient: user._id })
       .populate("sender", "username profileImage")
@@ -23,9 +23,9 @@ router.get("/", isLoggedIn, async function (req, res) {
   }
 });
 
-router.get("/unread-count", isLoggedIn, async function (req, res) {
+router.get("/unread-count", authenticateToken, async function (req, res) {
   try {
-    const user = await userModel.findOne({ username: req.session.passport.user });
+    const user = await userModel.findOne({ username: req.user.username });
     const count = await Notification.countDocuments({ recipient: user._id, read: false });
     res.json({ count });
   } catch (err) {
