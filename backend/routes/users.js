@@ -2,7 +2,7 @@ const mongoose = require('mongoose');
 const plm = require('passport-local-mongoose');
 
 // Connect to MongoDB
-const connectionString = process.env.MONGODB_URL || process.env.DATABASE_URL || "mongodb+srv://asadakhtar800_db_user:mydatabase234@cluster0.qmal1ui.mongodb.net/?appName=Cluster0";
+const connectionString = process.env.MONGODB_URL || process.env.DATABASE_URL ;
 
 mongoose.connect(connectionString);
 
