@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import api from '../api';
+import api, { API_URL } from '../api';
 import Navbar from '../components/Navbar';
 import StoryViewer from '../components/StoryViewer';
 
@@ -102,7 +102,7 @@ const UserProfile = () => {
         <div className={`w-[19vw] h-[19vw] rounded-full overflow-hidden ${hasStories ? 'p-1 bg-gradient-to-r from-purple-700 to-orange-500' : ''}`}>
           <div className="w-full h-full bg-sky-100 rounded-full overflow-hidden" onClick={hasStories ? handleStoryClick : undefined} style={{ cursor: hasStories ? 'pointer' : 'default' }}>
             <img
-              src={userProfile.profileImage?.startsWith('http') ? userProfile.profileImage : `http://localhost:3000/images/uploads/${userProfile.profileImage}`}
+              src={userProfile.profileImage?.startsWith('http') ? userProfile.profileImage : `${API_URL}/images/uploads/${userProfile.profileImage}`}
               alt="avatar"
               className="w-full h-full object-cover"
             />

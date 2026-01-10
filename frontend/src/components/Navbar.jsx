@@ -67,7 +67,7 @@ const Navbar = ({ user }) => {
               src={
                 user.profileImage?.startsWith('http')
                   ? user.profileImage
-                  : `${import.meta.env.VITE_API_URL || 'http://localhost:3000'}/${user.profileImage}`
+                  : `${API_URL}/images/uploads/${user.profileImage}`
               }
               alt="avatar"
               className="w-full h-full object-cover"

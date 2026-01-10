@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import api from '../api';
+import api, { API_URL } from '../api';
 import Navbar from '../components/Navbar';
 import ShareModal from '../components/ShareModal';
 
@@ -128,7 +128,7 @@ const UserPosts = () => {
                   <div className="w-[8vw] h-[8vw] bg-sky-100 rounded-full overflow-hidden">
                     <img
                       className="w-full h-full object-cover"
-                      src={profileUser.profileImage?.startsWith('http') ? profileUser.profileImage : `http://localhost:3000/images/uploads/${profileUser.profileImage}`}
+                      src={profileUser.profileImage?.startsWith('http') ? profileUser.profileImage : `${API_URL}/images/uploads/${profileUser.profileImage}`}
                       alt=""
                     />
                   </div>

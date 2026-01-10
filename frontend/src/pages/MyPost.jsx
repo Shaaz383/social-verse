@@ -61,7 +61,7 @@ const MyPost = () => {
                 <div className="w-[8vw] h-[8vw] bg-sky-100 rounded-full overflow-hidden">
                   <img
                     className="w-full h-full object-cover"
-                    src={`http://localhost:3000/images/uploads/${user.profileImage}`}
+                    src={user.profileImage?.startsWith('http') ? user.profileImage : `${API_URL}/images/uploads/${user.profileImage}`}
                     alt=""
                   />
                 </div>

@@ -303,7 +303,7 @@ const Message = () => {
                       src={
                         c.other.profileImage?.startsWith('http')
                           ? c.other.profileImage
-                          : `${import.meta.env.VITE_API_URL || 'http://localhost:3000'}/${c.other.profileImage}`
+                          : `${API_URL}/images/uploads/${c.other.profileImage}`
                       }
                       alt=""
                     />
@@ -339,7 +339,7 @@ const Message = () => {
                       src={
                         u.profileImage?.startsWith('http')
                           ? u.profileImage
-                          : `${import.meta.env.VITE_API_URL || 'http://localhost:3000'}/${u.profileImage}`
+                          : `${API_URL}/images/uploads/${u.profileImage}`
                       }
                       alt=""
                     />
